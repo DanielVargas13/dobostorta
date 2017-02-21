@@ -105,6 +105,7 @@ private:
     void setupView() {
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
+        connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
 
         view.load(QUrl(HOMEPAGE));
 
@@ -136,6 +137,16 @@ private slots:
         case SearchWithoutSchema:
             view.load(QString(SEARCH_ENGINE).arg(query));
             break;
+        }
+    }
+
+    void linkHovered(const QUrl &url) {
+        auto str(url.toDisplayString());
+
+        if (str.length() == 0) {
+            setWindowTitle(view.title());
+        } else {
+            setWindowTitle(str);
         }
     }
 
