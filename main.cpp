@@ -36,25 +36,25 @@ QMessageLogger logger;
 
 
 enum QueryType {
-    URLWithSchema,
-    URLWithoutSchema,
-    SearchWithSchema,
-    SearchWithoutSchema
+    URLWithScheme,
+    URLWithoutScheme,
+    SearchWithScheme,
+    SearchWithoutScheme
 };
 
 
 QueryType GuessQueryType(const QString &str) {
-    static const QRegExp hasSchema("^[a-zA-Z0-9]+://");
+    static const QRegExp hasScheme("^[a-zA-Z0-9]+://");
     static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
 
     if (str.startsWith("search:")) {
-        return SearchWithSchema;
-    } else if (hasSchema.indexIn(str) != -1) {
-        return URLWithSchema;
+        return SearchWithScheme;
+    } else if (hasScheme.indexIn(str) != -1) {
+        return URLWithScheme;
     } else if (address.indexIn(str) != -1) {
-        return URLWithoutSchema;
+        return URLWithoutScheme;
     } else {
-        return SearchWithoutSchema;
+        return SearchWithoutScheme;
     }
 }
 
@@ -125,9 +125,9 @@ private slots:
     void update(const QString &word) {
         QStringList list;
         auto type = GuessQueryType(word);
-        if (type == SearchWithoutSchema) {
+        if (type == SearchWithoutScheme) {
             list << "http://" + word;
-        } else if (type == URLWithoutSchema) {
+        } else if (type == URLWithoutScheme) {
             list << "search:" + word;
         }
         list << db.searchHistory(word);
@@ -193,16 +193,16 @@ private slots:
         QString query(bar.text());
 
         switch (GuessQueryType(query)) {
-        case URLWithSchema:
+        case URLWithScheme:
             view.load(query);
             break;
-        case URLWithoutSchema:
+        case URLWithoutScheme:
             view.load("http://" + query);
             break;
-        case SearchWithSchema:
+        case SearchWithScheme:
             view.load(QString(SEARCH_ENGINE).arg(query.right(query.length() - 7)));
             break;
-        case SearchWithoutSchema:
+        case SearchWithoutScheme:
             view.load(QString(SEARCH_ENGINE).arg(query));
             break;
         }
