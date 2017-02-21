@@ -1,0 +1,6 @@
+moc_predefs.h
+*.o
+*.moc
+dobostorta
+.qmake.stash
+Makefile
