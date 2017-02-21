@@ -24,22 +24,57 @@
 QMessageLogger logger;
 
 
+enum QueryType {
+    URLWithSchema,
+    URLWithoutSchema,
+    SearchWithSchema,
+    SearchWithoutSchema
+};
+
+
+QueryType GuessQueryType(const QString &str) {
+    static const QRegExp hasSchema("^[a-zA-Z0-9]+://");
+    static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
+
+    if (str.startsWith("search:")) {
+        return SearchWithSchema;
+    } else if (hasSchema.indexIn(str) != -1) {
+        return URLWithSchema;
+    } else if (address.indexIn(str) != -1) {
+        return URLWithoutSchema;
+    } else {
+        return SearchWithoutSchema;
+    }
+}
+
+
 class TortaCompleter : public QCompleter {
 Q_OBJECT
 
 private:
-    QStringList list;
     QStringListModel model;
 
 public:
     TortaCompleter(QLineEdit *line, QObject *parent=0) : QCompleter(parent) {
-        list << "hello" << "world" << "foo" << "bar";
-        model.setStringList(list);
-
         setModel(&model);
         setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setModelSorting(QCompleter::CaseInsensitivelySortedModel);
         setCaseSensitivity(Qt::CaseInsensitive);
+
+        connect(line, &QLineEdit::textChanged, this, &TortaCompleter::update);
+    }
+
+signals:
+private slots:
+    void update(const QString &word) {
+        QStringList list;
+        auto type = GuessQueryType(word);
+        if (type == SearchWithoutSchema) {
+            list << "http://" + word;
+        } else if (type == URLWithoutSchema) {
+            list << "search:" + word;
+        }
+        model.setStringList(list);
     }
 };
 
@@ -86,17 +121,21 @@ public:
 signals:
 private slots:
     void executeBar() {
-        static const QRegExp hasSchema("^[a-zA-Z0-9]+://");
-        static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
-
         QString query(bar.text());
 
-        if (hasSchema.indexIn(query) != -1) {
+        switch (GuessQueryType(query)) {
+        case URLWithSchema:
             view.load(query);
-        } else if (address.indexIn(bar.text()) != -1) {
+            break;
+        case URLWithoutSchema:
             view.load("http://" + query);
-        } else {
+            break;
+        case SearchWithSchema:
+            view.load(QString(SEARCH_ENGINE).arg(query.right(query.length() - 7)));
+            break;
+        case SearchWithoutSchema:
             view.load(QString(SEARCH_ENGINE).arg(query));
+            break;
         }
     }
 
