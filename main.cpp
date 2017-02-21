@@ -5,9 +5,13 @@
 #include <QMainWindow>
 #include <QMessageLogger>
 #include <QShortcut>
+#include <QStandardPaths>
 #include <QStringListModel>
 #include <QVBoxLayout>
 #include <QWebEngineView>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+#include <QtSql/QSqlError>
 #include <qtwebengineglobal.h>
 
 
@@ -55,14 +59,59 @@ QueryType GuessQueryType(const QString &str) {
 }
 
 
+class TortaDatabase {
+private:
+    QSqlDatabase db;
+    QSqlQuery append;
+    QSqlQuery search;
+
+public:
+    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), append(db), search(db) {
+        db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/db");
+        db.open();
+
+        QSqlQuery(db).exec("CREATE TABLE IF NOT EXISTS history (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, scheme TEXT NOT NULL, url TEXT NOT NULL)");
+
+        append.prepare("INSERT INTO history (scheme, url) values (?, ?)");
+        append.setForwardOnly(true);
+
+        search.prepare("SELECT scheme || ':' || url FROM history WHERE url LIKE ? GROUP BY url ORDER BY COUNT(timestamp)");
+        search.setForwardOnly(true);
+    }
+
+    ~TortaDatabase() {
+        db.close();
+    }
+
+    void appendHistory(const QUrl &url) {
+        append.bindValue(0, url.scheme());
+        append.bindValue(1, url.url().right(url.url().length() - url.scheme().length() - 1));
+        append.exec();
+    }
+
+    QStringList searchHistory(QString query) {
+        QStringList r;
+
+        search.bindValue(0, "%%" + query.replace("%%", "\\%%") + "%%");
+        search.exec();
+        while (search.next()) {
+            r << search.value(0).toString();
+        }
+
+        return r;
+    }
+};
+
+
 class TortaCompleter : public QCompleter {
 Q_OBJECT
 
 private:
     QStringListModel model;
+    TortaDatabase &db;
 
 public:
-    TortaCompleter(QLineEdit *line, QObject *parent=0) : QCompleter(parent) {
+    TortaCompleter(QLineEdit *line, TortaDatabase &db, QObject *parent=0) : QCompleter(parent), db(db) {
         setModel(&model);
         setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setModelSorting(QCompleter::CaseInsensitivelySortedModel);
@@ -81,6 +130,7 @@ private slots:
         } else if (type == URLWithoutSchema) {
             list << "search:" + word;
         }
+        list << db.searchHistory(word);
         model.setStringList(list);
     }
 };
@@ -92,6 +142,7 @@ Q_OBJECT
 private:
     QLineEdit bar;
     QWebEngineView view;
+    TortaDatabase db;
 
 
     void setShortcuts() {
@@ -113,7 +164,7 @@ private:
     void setupBar() {
         connect(&bar, &QLineEdit::returnPressed, this, &DobosTorta::executeBar);
 
-        bar.setCompleter(new TortaCompleter(&bar, this));
+        bar.setCompleter(new TortaCompleter(&bar, db, this));
 
         setMenuWidget(&bar);
     }
@@ -169,6 +220,7 @@ private slots:
 
     void urlChanged(const QUrl &url) {
         bar.setText(url.toString());
+        db.appendHistory(url);
     }
 
     void toggleBar() {
