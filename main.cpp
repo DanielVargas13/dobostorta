@@ -19,6 +19,13 @@
 #define SHORTCUT_FORWARD  (SHORTCUT_META + Qt::Key_I)
 #define SHORTCUT_BACK     (SHORTCUT_META + Qt::Key_O)
 #define SHORTCUT_BAR      (SHORTCUT_META + Qt::Key_Colon)
+#define SHORTCUT_DOWN     (SHORTCUT_META + Qt::Key_J)
+#define SHORTCUT_UP       (SHORTCUT_META + Qt::Key_K)
+#define SHORTCUT_LEFT     (SHORTCUT_META + Qt::Key_H)
+#define SHORTCUT_RIGHT    (SHORTCUT_META + Qt::Key_L)
+
+#define SCROLL_STEP_X  "20"
+#define SCROLL_STEP_Y  "20"
 
 
 QMessageLogger logger;
@@ -92,6 +99,15 @@ private:
         connect(new QShortcut(QKeySequence(SHORTCUT_BACK), this), &QShortcut::activated, &view, &QWebEngineView::back);
 
         connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), &QShortcut::activated, this, &DobosTorta::toggleBar);
+
+        connect(new QShortcut(QKeySequence(SHORTCUT_DOWN), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
+        connect(new QShortcut(QKeySequence(Qt::Key_Down), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
+        connect(new QShortcut(QKeySequence(SHORTCUT_UP), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -" SCROLL_STEP_Y ")"); });
+        connect(new QShortcut(QKeySequence(Qt::Key_Up), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -" SCROLL_STEP_Y ")"); });
+        connect(new QShortcut(QKeySequence(SHORTCUT_RIGHT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(" SCROLL_STEP_X ", 0)"); });
+        connect(new QShortcut(QKeySequence(Qt::Key_Right), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(" SCROLL_STEP_X ", 0)"); });
+        connect(new QShortcut(QKeySequence(SHORTCUT_LEFT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
+        connect(new QShortcut(QKeySequence(Qt::Key_Left), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
     }
 
     void setupBar() {
