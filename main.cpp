@@ -106,6 +106,7 @@ private:
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
+        connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
 
         view.load(QUrl(HOMEPAGE));
 
