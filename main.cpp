@@ -11,7 +11,8 @@
 #include <qtwebengineglobal.h>
 
 
-#define HOMEPAGE  "http://google.com"
+#define HOMEPAGE       "http://google.com"
+#define SEARCH_ENGINE  "http://google.com/search?q=%1"
 
 #define SHORTCUT_META     (Qt::CTRL)
 
@@ -85,7 +86,18 @@ public:
 signals:
 private slots:
     void executeBar() {
-        view.load(bar.text());
+        static const QRegExp hasSchema("^[a-zA-Z0-9]+://");
+        static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
+
+        QString query(bar.text());
+
+        if (hasSchema.indexIn(query) != -1) {
+            view.load(query);
+        } else if (address.indexIn(bar.text()) != -1) {
+            view.load("http://" + query);
+        } else {
+            view.load(QString(SEARCH_ENGINE).arg(query));
+        }
     }
 
     void urlChanged(const QUrl &url) {
