@@ -39,14 +39,6 @@ public:
         setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setModelSorting(QCompleter::CaseInsensitivelySortedModel);
         setCaseSensitivity(Qt::CaseInsensitive);
-
-        connect(line, SIGNAL(textChanged(QString)), this, SLOT(update(QString)));
-    }
-
-signals:
-private slots:
-    void update(const QString &word) {
-        logger.debug(word.toStdString().c_str());
     }
 };
 
@@ -60,14 +52,14 @@ private:
 
 
     void setShortcuts() {
-        connect(new QShortcut(QKeySequence(SHORTCUT_FORWARD), this), SIGNAL(activated()), &view, SLOT(forward()));
-        connect(new QShortcut(QKeySequence(SHORTCUT_BACK), this), SIGNAL(activated()), &view, SLOT(back()));
+        connect(new QShortcut(QKeySequence(SHORTCUT_FORWARD), this), &QShortcut::activated, &view, &QWebEngineView::forward);
+        connect(new QShortcut(QKeySequence(SHORTCUT_BACK), this), &QShortcut::activated, &view, &QWebEngineView::back);
 
-        connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), SIGNAL(activated()), this, SLOT(toggleBar()));
+        connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), &QShortcut::activated, this, &DobosTorta::toggleBar);
     }
 
     void setupBar() {
-        connect(&bar, SIGNAL(returnPressed()), this, SLOT(executeBar()));
+        connect(&bar, &QLineEdit::returnPressed, this, &DobosTorta::executeBar);
 
         bar.setCompleter(new TortaCompleter(&bar, this));
 
@@ -75,8 +67,8 @@ private:
     }
 
     void setupView() {
-        connect(&view, SIGNAL(titleChanged(QString)), this, SLOT(setWindowTitle(QString)));
-        connect(&view, SIGNAL(urlChanged(QUrl)), this, SLOT(urlChanged(QUrl)));
+        connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
+        connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
 
         view.load(QUrl(HOMEPAGE));
 
