@@ -184,6 +184,7 @@ private:
 
         bar.setCompleter(new TortaCompleter(&bar, db, this));
 
+        bar.setVisible(false);
         setMenuWidget(&bar);
     }
 
@@ -215,15 +216,19 @@ private slots:
         switch (GuessQueryType(query)) {
         case URLWithScheme:
             view.load(query);
+            bar.setVisible(false);
             break;
         case URLWithoutScheme:
             view.load("http://" + query);
+            bar.setVisible(false);
             break;
         case SearchWithScheme:
             view.load(QString(SEARCH_ENGINE).arg(query.right(query.length() - 7)));
+            bar.setVisible(false);
             break;
         case SearchWithoutScheme:
             view.load(QString(SEARCH_ENGINE).arg(query));
+            bar.setVisible(false);
             break;
         case InSiteSearch:
             view.page()->findText(query.right(query.length() - 5));
@@ -234,7 +239,9 @@ private slots:
     void barChanged() {
         const QString query(bar.text());
         if (GuessQueryType(query) == InSiteSearch) {
-            view.page()->findText(query.right(query.length() - 5));
+            view.findText(query.right(query.length() - 5));
+        } else {
+            view.findText("");
         }
     }
 
@@ -250,20 +257,31 @@ private slots:
 
     void toggleBar() {
         if (!bar.hasFocus()) {
+            bar.setVisible(true);
             bar.setText(view.url().toDisplayString());
             bar.setFocus(Qt::ShortcutFocusReason);
+       } else if (GuessQueryType(bar.text()) == InSiteSearch) {
+           view.findText("");
+           bar.setText(bar.text().right(bar.text().length() - 5));
+           bar.selectAll();
         } else {
             view.setFocus(Qt::ShortcutFocusReason);
+            bar.setVisible(false);
         }
     }
 
     void toggleFind() {
         if (!bar.hasFocus()) {
+            bar.setVisible(true);
             bar.setFocus(Qt::ShortcutFocusReason);
             bar.setText("find:");
+        } else if (GuessQueryType(bar.text()) != InSiteSearch) {
+            bar.setText("find:" + bar.text());
+            bar.setSelection(5, bar.text().length());
         } else {
             view.findText("");
             view.setFocus(Qt::ShortcutFocusReason);
+            bar.setVisible(false);
         }
     }
 };
