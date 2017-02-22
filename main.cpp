@@ -79,11 +79,12 @@ public:
         db.open();
 
         QSqlQuery(db).exec("CREATE TABLE IF NOT EXISTS history (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, scheme TEXT NOT NULL, url TEXT NOT NULL)");
+        QSqlQuery(db).exec("CREATE VIEW IF NOT EXISTS recently AS SELECT MAX(timestamp) last_access, COUNT(timestamp) count, scheme, url FROM history GROUP BY scheme || url ORDER BY MAX(timestamp) DESC");
 
         append.prepare("INSERT INTO history (scheme, url) values (?, ?)");
         append.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || url FROM history WHERE url LIKE ? GROUP BY url ORDER BY COUNT(timestamp) DESC");
+        search.prepare("SELECT scheme || ':' || url FROM recently WHERE url LIKE ? ORDER BY count DESC");
         search.setForwardOnly(true);
     }
 
