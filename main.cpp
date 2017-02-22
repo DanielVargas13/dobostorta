@@ -189,7 +189,7 @@ private:
 
     void setupView() {
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
-        connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
+        connect(&view, &QWebEngineView::urlChanged, [&](const QUrl &u){ db.appendHistory(u); });
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
 
@@ -246,13 +246,6 @@ private slots:
         } else {
             setWindowTitle(str);
         }
-    }
-
-    void urlChanged(const QUrl &url) {
-        if (!bar.hasFocus()) {
-            bar.setText(url.toString());
-        }
-        db.appendHistory(url);
     }
 
     void toggleBar() {
