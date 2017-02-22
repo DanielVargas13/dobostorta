@@ -79,7 +79,7 @@ public:
         append.prepare("INSERT INTO history (scheme, url) values (?, ?)");
         append.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || url FROM history WHERE url LIKE ? GROUP BY url ORDER BY COUNT(timestamp)");
+        search.prepare("SELECT scheme || ':' || url FROM history WHERE url LIKE ? GROUP BY url ORDER BY COUNT(timestamp) DESC");
         search.setForwardOnly(true);
     }
 
