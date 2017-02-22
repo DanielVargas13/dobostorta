@@ -150,7 +150,9 @@ private:
 
     void setShortcuts() {
         connect(new QShortcut(QKeySequence(SHORTCUT_FORWARD), this), &QShortcut::activated, &view, &QWebEngineView::forward);
+        connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Right), this), &QShortcut::activated, &view, &QWebEngineView::forward);
         connect(new QShortcut(QKeySequence(SHORTCUT_BACK), this), &QShortcut::activated, &view, &QWebEngineView::back);
+        connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left), this), &QShortcut::activated, &view, &QWebEngineView::back);
 
         connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), &QShortcut::activated, this, &DobosTorta::toggleBar);
 
