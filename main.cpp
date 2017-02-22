@@ -8,10 +8,11 @@
 #include <QStandardPaths>
 #include <QStringListModel>
 #include <QVBoxLayout>
+#include <QWebEngineProfile>
 #include <QWebEngineView>
 #include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
 #include <QtSql/QSqlError>
+#include <QtSql/QSqlQuery>
 #include <qtwebengineglobal.h>
 
 
@@ -185,6 +186,8 @@ private:
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
+
+        view.page()->profile()->setHttpUserAgent("DobosTorta");
 
         view.load(QUrl(HOMEPAGE));
 
