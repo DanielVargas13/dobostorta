@@ -27,9 +27,12 @@
 #define SHORTCUT_UP       (SHORTCUT_META + Qt::Key_K)
 #define SHORTCUT_LEFT     (SHORTCUT_META + Qt::Key_H)
 #define SHORTCUT_RIGHT    (SHORTCUT_META + Qt::Key_L)
+#define SHORTCUT_ZOOMIN   (SHORTCUT_META + Qt::Key_Plus)
+#define SHORTCUT_ZOOMOUT  (SHORTCUT_META + Qt::Key_Minus)
 
 #define SCROLL_STEP_X  "20"
 #define SCROLL_STEP_Y  "20"
+#define ZOOM_STEP      0.1
 
 
 QMessageLogger logger;
@@ -159,6 +162,9 @@ private:
         connect(new QShortcut(QKeySequence(Qt::Key_Right), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(" SCROLL_STEP_X ", 0)"); });
         connect(new QShortcut(QKeySequence(SHORTCUT_LEFT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
         connect(new QShortcut(QKeySequence(Qt::Key_Left), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
+
+        connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMIN), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+        connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMOUT), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
     }
 
     void setupBar() {
