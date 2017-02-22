@@ -1,4 +1,4 @@
-Dobostorta
+DobosTorta
 ==========
 
 The minimal browser.
@@ -23,12 +23,12 @@ $ make install
 |Ctrl-l or right|scroll to right|
 
 #### History
-|Key            |Description    |
-|:--------------|:--------------|
-|Ctrl-i         |forward history|
-|Ctrl-o         |back history   |
+|Key                |Description    |
+|:------------------|:--------------|
+|Ctrl-i or Alt-Right|forward history|
+|Ctrl-o or Alt-Left |back history   |
 
 #### Bar
-|Key            |Description    |
-|:--------------|:--------------|
-|Ctrl-:         |focus to bar   |
+|Key   |Description    |
+|:-----|:--------------|
+|Ctrl-:|focus to bar   |
