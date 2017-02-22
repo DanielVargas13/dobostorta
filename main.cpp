@@ -163,6 +163,9 @@ private:
         connect(new QShortcut(QKeySequence(SHORTCUT_LEFT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
         connect(new QShortcut(QKeySequence(Qt::Key_Left), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
 
+        connect(new QShortcut(QKeySequence(Qt::Key_PageDown), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, window.innerHeight / 2)"); });
+        connect(new QShortcut(QKeySequence(Qt::Key_PageUp), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)"); });
+
         connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMIN), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
         connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMOUT), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
     }
