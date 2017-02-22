@@ -233,16 +233,18 @@ private slots:
     }
 
     void urlChanged(const QUrl &url) {
-        bar.setText(url.toString());
+        if (!bar.hasFocus()) {
+            bar.setText(url.toString());
+        }
         db.appendHistory(url);
     }
 
     void toggleBar() {
         if (!bar.hasFocus()) {
-            bar.setFocus();
+            bar.setFocus(Qt::ShortcutFocusReason);
             bar.selectAll();
         } else {
-            view.setFocus();
+            view.setFocus(Qt::ShortcutFocusReason);
         }
     }
 };
