@@ -19,6 +19,10 @@
 #define HOMEPAGE       "http://google.com"
 #define SEARCH_ENGINE  "http://google.com/search?q=%1"
 
+#define HTTPS_FRAME_COLOR        "#00ff00"
+#define HTTPS_ERROR_FRAME_COLOR  "#ff0000"
+#define DEFAULT_FRAME_COLOR      "#808080"
+
 #define SHORTCUT_META     (Qt::CTRL)
 
 #define SHORTCUT_FORWARD  (SHORTCUT_META + Qt::Key_I)
@@ -145,6 +149,26 @@ private slots:
 };
 
 
+class TortaPage : public QWebEnginePage {
+    Q_OBJECT
+
+protected:
+    virtual bool certificateError(const QWebEngineCertificateError &error) {
+        logger.warning(("ssl error: " + error.errorDescription().toStdString()).c_str());
+        emit sslError();
+        return true;
+    }
+
+public:
+    TortaPage(QObject *parent=Q_NULLPTR) : QWebEnginePage(parent) {
+        profile()->setHttpUserAgent("DobosTorta");
+    }
+
+signals:
+    void sslError();
+};
+
+
 class DobosTorta : public QMainWindow {
 Q_OBJECT
 
@@ -190,12 +214,15 @@ private:
     }
 
     void setupView() {
+        auto page = new TortaPage();
+        view.setPage(page);
+
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
-        connect(&view, &QWebEngineView::urlChanged, [&](const QUrl &u){ db.appendHistory(u); });
+        connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
 
-        view.page()->profile()->setHttpUserAgent("DobosTorta");
+        connect(page, &TortaPage::sslError, [&](){ setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }"); });
 
         view.load(QUrl(HOMEPAGE));
 
@@ -207,6 +234,9 @@ public:
         setupBar();
         setupView();
         setShortcuts();
+
+        setContentsMargins(2, 2, 2, 2);
+        setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
     }
 
 signals:
@@ -253,6 +283,16 @@ private slots:
             setWindowTitle(view.title());
         } else {
             setWindowTitle(str);
+        }
+    }
+
+    void urlChanged(const QUrl &u) {
+        db.appendHistory(u);
+
+        if (u.scheme() == "https") {
+            setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");
+        } else {
+            setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
         }
     }
 
