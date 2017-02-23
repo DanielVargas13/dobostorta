@@ -29,6 +29,7 @@ $ make install
 |Ctrl-o or Alt-Left |back history   |
 
 #### Bar
-|Key   |Description    |
-|:-----|:--------------|
-|Ctrl-:|focus to bar   |
+|Key   |Description                                  |
+|:-----|:--------------------------------------------|
+|Ctrl-:|focus to bar and start edit url or web search|
+|Ctrl-/|focus to bar and start in-site search        |

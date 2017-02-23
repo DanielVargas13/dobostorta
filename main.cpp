@@ -24,6 +24,7 @@
 #define SHORTCUT_FORWARD  (SHORTCUT_META + Qt::Key_I)
 #define SHORTCUT_BACK     (SHORTCUT_META + Qt::Key_O)
 #define SHORTCUT_BAR      (SHORTCUT_META + Qt::Key_Colon)
+#define SHORTCUT_FIND     (SHORTCUT_META + Qt::Key_Slash)
 #define SHORTCUT_DOWN     (SHORTCUT_META + Qt::Key_J)
 #define SHORTCUT_UP       (SHORTCUT_META + Qt::Key_K)
 #define SHORTCUT_LEFT     (SHORTCUT_META + Qt::Key_H)
@@ -43,7 +44,8 @@ enum QueryType {
     URLWithScheme,
     URLWithoutScheme,
     SearchWithScheme,
-    SearchWithoutScheme
+    SearchWithoutScheme,
+    InSiteSearch
 };
 
 
@@ -53,6 +55,8 @@ QueryType GuessQueryType(const QString &str) {
 
     if (str.startsWith("search:")) {
         return SearchWithScheme;
+    } else if (str.startsWith("find:")) {
+        return InSiteSearch;
     } else if (hasScheme.indexIn(str) != -1) {
         return URLWithScheme;
     } else if (address.indexIn(str) != -1) {
@@ -130,9 +134,9 @@ private slots:
         QStringList list;
         auto type = GuessQueryType(word);
         if (type == SearchWithoutScheme) {
-            list << "http://" + word;
+            list << "find:" + word << "http://" + word;
         } else if (type == URLWithoutScheme) {
-            list << "search:" + word;
+            list << "search:" + word << "find:" + word;
         }
         list << db.searchHistory(word);
         model.setStringList(list);
@@ -156,6 +160,7 @@ private:
         connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left), this), &QShortcut::activated, &view, &QWebEngineView::back);
 
         connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), &QShortcut::activated, this, &DobosTorta::toggleBar);
+        connect(new QShortcut(QKeySequence(SHORTCUT_FIND), this), &QShortcut::activated, this, &DobosTorta::toggleFind);
 
         connect(new QShortcut(QKeySequence(SHORTCUT_DOWN), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
         connect(new QShortcut(QKeySequence(Qt::Key_Down), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
@@ -174,6 +179,7 @@ private:
     }
 
     void setupBar() {
+        connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
         connect(&bar, &QLineEdit::returnPressed, this, &DobosTorta::executeBar);
 
         bar.setCompleter(new TortaCompleter(&bar, db, this));
@@ -204,7 +210,7 @@ public:
 signals:
 private slots:
     void executeBar() {
-        QString query(bar.text());
+        const QString query(bar.text());
 
         switch (GuessQueryType(query)) {
         case URLWithScheme:
@@ -219,6 +225,16 @@ private slots:
         case SearchWithoutScheme:
             view.load(QString(SEARCH_ENGINE).arg(query));
             break;
+        case InSiteSearch:
+            view.page()->findText(query.right(query.length() - 5));
+            break;
+        }
+    }
+
+    void barChanged() {
+        const QString query(bar.text());
+        if (GuessQueryType(query) == InSiteSearch) {
+            view.page()->findText(query.right(query.length() - 5));
         }
     }
 
@@ -241,9 +257,19 @@ private slots:
 
     void toggleBar() {
         if (!bar.hasFocus()) {
+            bar.setText(view.url().toDisplayString());
             bar.setFocus(Qt::ShortcutFocusReason);
-            bar.selectAll();
         } else {
+            view.setFocus(Qt::ShortcutFocusReason);
+        }
+    }
+
+    void toggleFind() {
+        if (!bar.hasFocus()) {
+            bar.setFocus(Qt::ShortcutFocusReason);
+            bar.setText("find:");
+        } else {
+            view.findText("");
             view.setFocus(Qt::ShortcutFocusReason);
         }
     }
