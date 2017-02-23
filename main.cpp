@@ -174,7 +174,7 @@ class TortaPage : public QWebEnginePage {
 Q_OBJECT
 
 protected:
-    virtual bool certificateError(const QWebEngineCertificateError &error) {
+    virtual bool certificateError(const QWebEngineCertificateError &error) override {
         logger.warning(("ssl error: " + error.errorDescription()).toStdString().c_str());
         emit sslError();
         return true;
