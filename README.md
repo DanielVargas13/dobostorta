@@ -9,8 +9,10 @@ $ git clone http://github.com/macrat/dobostorta.git
 $ cd dobostorta
 $ qmake
 $ make
-$ make install
+$ sudo make install
 ```
+
+Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 
 ## Usae
 ### Shortcuts
