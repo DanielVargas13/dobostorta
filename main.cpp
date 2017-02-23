@@ -36,8 +36,8 @@
 #define SHORTCUT_ZOOMIN   (SHORTCUT_META + Qt::Key_Plus)
 #define SHORTCUT_ZOOMOUT  (SHORTCUT_META + Qt::Key_Minus)
 
-#define SCROLL_STEP_X  "20"
-#define SCROLL_STEP_Y  "20"
+#define SCROLL_STEP_X  20
+#define SCROLL_STEP_Y  20
 #define ZOOM_STEP      0.1
 
 
@@ -57,17 +57,16 @@ QueryType GuessQueryType(const QString &str) {
     static const QRegExp hasScheme("^[a-zA-Z0-9]+://");
     static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
 
-    if (str.startsWith("search:")) {
+    if (str.startsWith("search:"))
         return SearchWithScheme;
-    } else if (str.startsWith("find:")) {
+    else if (str.startsWith("find:"))
         return InSiteSearch;
-    } else if (hasScheme.indexIn(str) != -1) {
+    else if (hasScheme.indexIn(str) != -1)
         return URLWithScheme;
-    } else if (address.indexIn(str) != -1) {
+    else if (address.indexIn(str) != -1)
         return URLWithoutScheme;
-    } else {
+    else
         return SearchWithoutScheme;
-    }
 }
 
 
@@ -82,13 +81,29 @@ public:
         db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/db");
         db.open();
 
-        QSqlQuery(db).exec("CREATE TABLE IF NOT EXISTS history (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, scheme TEXT NOT NULL, url TEXT NOT NULL)");
-        QSqlQuery(db).exec("CREATE VIEW IF NOT EXISTS recently AS SELECT MAX(timestamp) last_access, COUNT(timestamp) count, scheme, url FROM history GROUP BY scheme || url ORDER BY MAX(timestamp) DESC");
+        db.exec("CREATE TABLE IF NOT EXISTS history                 \
+                   (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  \
+                    scheme TEXT NOT NULL,                           \
+                    url TEXT NOT NULL)");
 
-        append.prepare("INSERT INTO history (scheme, url) values (?, ?)");
+        db.exec("CREATE VIEW IF NOT EXISTS recently AS  \
+                   SELECT MAX(timestamp) last_access,   \
+                          COUNT(timestamp) count,       \
+                          scheme,                       \
+                          url                           \
+                   FROM history                         \
+                   GROUP BY scheme || url               \
+                   ORDER BY MAX(timestamp) DESC");
+
+        db.commit();
+
+        append.prepare("INSERT INTO history (scheme, url) VALUES (?, ?)");
         append.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || url FROM recently WHERE url LIKE ? ORDER BY count DESC");
+        search.prepare("SELECT scheme || ':' || url  \
+                          FROM recently              \
+                          WHERE url LIKE ?           \
+                          ORDER BY count DESC");
         search.setForwardOnly(true);
     }
 
@@ -100,17 +115,20 @@ public:
         append.bindValue(0, url.scheme());
         append.bindValue(1, url.url().right(url.url().length() - url.scheme().length() - 1));
         append.exec();
+        db.commit();
+        append.clear();
     }
 
     QStringList searchHistory(QString query) {
-        QStringList r;
-
         search.bindValue(0, "%%" + query.replace("%%", "\\%%") + "%%");
         search.exec();
-        while (search.next()) {
-            r << search.value(0).toString();
-        }
 
+        QStringList r;
+
+        while (search.next())
+            r << search.value(0).toString();
+
+        search.clear();
         return r;
     }
 };
@@ -124,7 +142,9 @@ private:
     TortaDatabase &db;
 
 public:
-    TortaCompleter(QLineEdit *line, TortaDatabase &db, QObject *parent=0) : QCompleter(parent), db(db) {
+    TortaCompleter(QLineEdit *line, TortaDatabase &db, QObject *parent=Q_NULLPTR)
+            : QCompleter(parent), db(db) {
+
         setModel(&model);
         setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setModelSorting(QCompleter::CaseInsensitivelySortedModel);
@@ -136,13 +156,14 @@ public:
 signals:
 private slots:
     void update(const QString &word) {
+        const QueryType type(GuessQueryType(word));
         QStringList list;
-        auto type = GuessQueryType(word);
-        if (type == SearchWithoutScheme) {
+
+        if (type == SearchWithoutScheme)
             list << "find:" + word << "http://" + word;
-        } else if (type == URLWithoutScheme) {
+        else if (type == URLWithoutScheme)
             list << "search:" + word << "find:" + word;
-        }
+
         list << db.searchHistory(word);
         model.setStringList(list);
     }
@@ -150,11 +171,11 @@ private slots:
 
 
 class TortaPage : public QWebEnginePage {
-    Q_OBJECT
+Q_OBJECT
 
 protected:
     virtual bool certificateError(const QWebEngineCertificateError &error) {
-        logger.warning(("ssl error: " + error.errorDescription().toStdString()).c_str());
+        logger.warning(("ssl error: " + error.errorDescription()).toStdString().c_str());
         emit sslError();
         return true;
     }
@@ -178,29 +199,44 @@ private:
     TortaDatabase db;
 
 
-    void setShortcuts() {
-        connect(new QShortcut(QKeySequence(SHORTCUT_FORWARD), this), &QShortcut::activated, &view, &QWebEngineView::forward);
-        connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Right), this), &QShortcut::activated, &view, &QWebEngineView::forward);
-        connect(new QShortcut(QKeySequence(SHORTCUT_BACK), this), &QShortcut::activated, &view, &QWebEngineView::back);
-        connect(new QShortcut(QKeySequence(Qt::ALT + Qt::Key_Left), this), &QShortcut::activated, &view, &QWebEngineView::back);
+    template<class Func>
+    void addShortcut(QKeySequence key,
+                     const typename QtPrivate::FunctionPointer<Func>::Object *receiver,
+                     Func method) {
+        connect(new QShortcut(key, this), &QShortcut::activated, receiver, method);
+    }
 
-        connect(new QShortcut(QKeySequence(SHORTCUT_BAR), this), &QShortcut::activated, this, &DobosTorta::toggleBar);
-        connect(new QShortcut(QKeySequence(SHORTCUT_FIND), this), &QShortcut::activated, this, &DobosTorta::toggleFind);
+    template<class Func> void addShortcut(QKeySequence key, Func functor) {
+        connect(new QShortcut(key, this), &QShortcut::activated, functor);
+    }
 
-        connect(new QShortcut(QKeySequence(SHORTCUT_DOWN), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
-        connect(new QShortcut(QKeySequence(Qt::Key_Down), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, " SCROLL_STEP_Y ")"); });
-        connect(new QShortcut(QKeySequence(SHORTCUT_UP), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -" SCROLL_STEP_Y ")"); });
-        connect(new QShortcut(QKeySequence(Qt::Key_Up), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -" SCROLL_STEP_Y ")"); });
-        connect(new QShortcut(QKeySequence(SHORTCUT_RIGHT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(" SCROLL_STEP_X ", 0)"); });
-        connect(new QShortcut(QKeySequence(Qt::Key_Right), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(" SCROLL_STEP_X ", 0)"); });
-        connect(new QShortcut(QKeySequence(SHORTCUT_LEFT), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
-        connect(new QShortcut(QKeySequence(Qt::Key_Left), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(-" SCROLL_STEP_X ", 0)"); });
+    void setupShortcuts() {
+        addShortcut({SHORTCUT_FORWARD},        &view, &QWebEngineView::forward);
+        addShortcut({Qt::ALT + Qt::Key_Right}, &view, &QWebEngineView::forward);
+        addShortcut({SHORTCUT_BACK},           &view, &QWebEngineView::back);
+        addShortcut({Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
 
-        connect(new QShortcut(QKeySequence(Qt::Key_PageDown), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, window.innerHeight / 2)"); });
-        connect(new QShortcut(QKeySequence(Qt::Key_PageUp), this), &QShortcut::activated, [&](){ view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)"); });
+        addShortcut({SHORTCUT_BAR},  this, &DobosTorta::toggleBar);
+        addShortcut({SHORTCUT_FIND}, this, &DobosTorta::toggleFind);
 
-        connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMIN), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
-        connect(new QShortcut(QKeySequence(SHORTCUT_ZOOMOUT), this), &QShortcut::activated, [&](){ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+        addShortcut({SHORTCUT_DOWN},  [&]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut({Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut({SHORTCUT_UP},    [&]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut({Qt::Key_Up},     [&]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut({SHORTCUT_RIGHT}, [&]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut({Qt::Key_Right},  [&]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut({SHORTCUT_LEFT},  [&]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut({Qt::Key_Left},   [&]{ scroll(-SCROLL_STEP_X, 0); });
+
+        addShortcut({Qt::Key_PageDown}, [&]{
+            view.page()->runJavaScript("window.scrollBy(0, window.innerHeight / 2)");
+        });
+        addShortcut({Qt::Key_PageUp}, [&]{
+            view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)");
+        });
+
+        addShortcut({SHORTCUT_ZOOMIN},  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+        addShortcut({SHORTCUT_ZOOMOUT}, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
     }
 
     void setupBar() {
@@ -222,18 +258,24 @@ private:
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
 
-        connect(page, &TortaPage::sslError, [&](){ setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }"); });
+        connect(page, &TortaPage::sslError, [&]{
+            setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
+        });
 
         view.load(QUrl(HOMEPAGE));
 
         setCentralWidget(&view);
     }
 
+    void scroll(int x, int y) {
+        view.page()->runJavaScript(QString("window.scrollBy(%1, %2)").arg(x).arg(y));
+    }
+
 public:
     DobosTorta() : bar(HOMEPAGE, this), view(this) {
         setupBar();
         setupView();
-        setShortcuts();
+        setupShortcuts();
 
         setContentsMargins(2, 2, 2, 2);
         setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
@@ -242,6 +284,7 @@ public:
 signals:
 private slots:
     void executeBar() {
+        static const QString search(SEARCH_ENGINE);
         const QString query(bar.text());
 
         switch (GuessQueryType(query)) {
@@ -254,11 +297,11 @@ private slots:
             bar.setVisible(false);
             break;
         case SearchWithScheme:
-            view.load(QString(SEARCH_ENGINE).arg(query.right(query.length() - 7)));
+            view.load(search.arg(query.right(query.length() - 7)));
             bar.setVisible(false);
             break;
         case SearchWithoutScheme:
-            view.load(QString(SEARCH_ENGINE).arg(query));
+            view.load(search.arg(query));
             bar.setVisible(false);
             break;
         case InSiteSearch:
@@ -269,31 +312,29 @@ private slots:
 
     void barChanged() {
         const QString query(bar.text());
-        if (GuessQueryType(query) == InSiteSearch) {
+
+        if (GuessQueryType(query) == InSiteSearch)
             view.findText(query.right(query.length() - 5));
-        } else {
+        else
             view.findText("");
-        }
     }
 
     void linkHovered(const QUrl &url) {
-        auto str(url.toDisplayString());
+        const QString str(url.toDisplayString());
 
-        if (str.length() == 0) {
+        if (str.length() == 0)
             setWindowTitle(view.title());
-        } else {
+        else
             setWindowTitle(str);
-        }
     }
 
     void urlChanged(const QUrl &u) {
         db.appendHistory(u);
 
-        if (u.scheme() == "https") {
+        if (u.scheme() == "https")
             setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");
-        } else {
+        else
             setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
-        }
     }
 
     void toggleBar() {
