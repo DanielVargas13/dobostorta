@@ -98,8 +98,6 @@ public:
                    GROUP BY scheme || url               \
                    ORDER BY MAX(timestamp) DESC");
 
-        db.commit();
-
         append.prepare("INSERT INTO history (scheme, url) VALUES (?, ?)");
         append.setForwardOnly(true);
 
@@ -118,7 +116,6 @@ public:
         append.bindValue(0, url.scheme());
         append.bindValue(1, url.url().right(url.url().length() - url.scheme().length() - 1));
         append.exec();
-        db.commit();
         append.clear();
     }
 
@@ -196,7 +193,7 @@ Q_OBJECT
 private:
     QLineEdit bar;
     QWebEngineView view;
-    TortaDatabase db;
+    TortaDatabase &db;
 
 
     template<class Func>
@@ -301,7 +298,7 @@ private:
     }
 
 public:
-    DobosTorta() : bar(this), view(this) {
+    DobosTorta(TortaDatabase &db) : bar(this), view(this), db(db) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -414,14 +411,16 @@ int main(int argc, char **argv) {
     QWebEngineSettings::defaultSettings()->setAttribute(
             QWebEngineSettings::FullScreenSupportEnabled, true);
 
+    TortaDatabase db;
+
     if (argc > 1) {
         for (int i=1; i<argc; i++) {
-            auto window = new DobosTorta;
+            auto window = new DobosTorta(db);
             window->load(argv[i]);
             window->show();
         }
     } else {
-        auto window = new DobosTorta;
+        auto window = new DobosTorta(db);
         window->load(HOMEPAGE);
         window->show();
     }
