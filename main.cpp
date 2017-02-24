@@ -288,6 +288,13 @@ private:
         view.page()->runJavaScript(QString("window.scrollBy(%1, %2)").arg(x).arg(y));
     }
 
+    void openBar(QString prefix, QString content) {
+        bar.setText(prefix + content);
+        bar.setVisible(true);
+        bar.setFocus(Qt::ShortcutFocusReason);
+        bar.setSelection(prefix.length(), content.length());
+    }
+
 public:
     DobosTorta() : bar(HOMEPAGE, this), view(this) {
         setupBar();
@@ -355,30 +362,21 @@ private slots:
     }
 
     void toggleBar() {
-        if (!bar.hasFocus()) {
-            bar.setVisible(true);
-            bar.setText(view.url().toDisplayString());
-            bar.setFocus(Qt::ShortcutFocusReason);
-       } else if (GuessQueryType(bar.text()) == InSiteSearch) {
-           view.findText("");
-           bar.setText(bar.text().right(bar.text().length() - 5));
-           bar.selectAll();
-        } else {
+        if (!bar.hasFocus())
+            openBar("", view.url().toDisplayString());
+        else if (GuessQueryType(bar.text()) == InSiteSearch)
+            openBar("", bar.text().right(bar.text().length() - 5));
+        else
             escapeBar();
-        }
     }
 
     void toggleFind() {
-        if (!bar.hasFocus()) {
-            bar.setVisible(true);
-            bar.setFocus(Qt::ShortcutFocusReason);
-            bar.setText("find:");
-        } else if (GuessQueryType(bar.text()) != InSiteSearch) {
-            bar.setText("find:" + bar.text());
-            bar.setSelection(5, bar.text().length());
-        } else {
+        if (!bar.hasFocus())
+            openBar("find:", "");
+        else if (GuessQueryType(bar.text()) != InSiteSearch)
+            openBar("find:", bar.text());
+        else
             escapeBar();
-        }
     }
 
     void escapeBar() {
