@@ -8,7 +8,9 @@
 #include <QStandardPaths>
 #include <QStringListModel>
 #include <QVBoxLayout>
+#include <QWebEngineFullScreenRequest>
 #include <QWebEngineProfile>
+#include <QWebEngineSettings>
 #include <QWebEngineView>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlError>
@@ -378,6 +380,18 @@ private slots:
             bar.setVisible(false);
         }
     }
+
+    void toggleFullScreen(QWebEngineFullScreenRequest r) {
+        if (r.toggleOn())
+            showFullScreen();
+        else
+            showNormal();
+
+        if (isFullScreen() == r.toggleOn())
+            r.accept();
+        else
+            r.reject();
+    }
 };
 
 
@@ -386,6 +400,8 @@ int main(int argc, char **argv) {
     QApplication app(argc, argv);
 
     QtWebEngine::initialize();
+    QWebEngineSettings::defaultSettings()->setAttribute(
+            QWebEngineSettings::FullScreenSupportEnabled, true);
 
     DobosTorta window;
     window.show();
