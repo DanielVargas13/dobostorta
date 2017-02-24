@@ -184,12 +184,28 @@ signals:
 };
 
 
+class TortaView : public QWebEngineView {
+private:
+    TortaDatabase &db;
+
+protected:
+    virtual QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
+
+public:
+    TortaView(TortaDatabase &db, QWidget *parent=Q_NULLPTR) : QWebEngineView(parent), db(db) {
+        setPage(new TortaPage());
+    }
+};
+
+
 class DobosTorta : public QMainWindow {
 Q_OBJECT
 
+    friend class TortaView;
+
 private:
     QLineEdit bar;
-    QWebEngineView view;
+    TortaView view;
     TortaDatabase &db;
 
 
@@ -259,15 +275,12 @@ private:
     }
 
     void setupView() {
-        auto page = new TortaPage();
-        view.setPage(page);
-
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
-        connect(view.page(), &QWebEnginePage::iconChanged, this, &DobosTorta::setWindowIcon);
+        connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
 
-        connect(page, &TortaPage::sslError, [&]{
+        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [&]{
             setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
         });
 
@@ -295,7 +308,7 @@ private:
     }
 
 public:
-    DobosTorta(TortaDatabase &db) : bar(this), view(this), db(db) {
+    DobosTorta(TortaDatabase &db) : bar(this), view(db, this), db(db) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -398,6 +411,15 @@ private slots:
             r.reject();
     }
 };
+
+
+QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
+    auto window = new DobosTorta(db);
+    window->show();
+    if (type != QWebEnginePage::WebBrowserBackgroundTab)
+        window->setFocus();
+    return &window->view;
+}
 
 
 int main(int argc, char **argv) {
