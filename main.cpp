@@ -136,15 +136,10 @@ private:
     TortaDatabase &db;
 
 public:
-    TortaCompleter(QLineEdit *line, TortaDatabase &db, QObject *parent=Q_NULLPTR)
-            : QCompleter(parent), db(db) {
-
+    TortaCompleter(QLineEdit *line, TortaDatabase &db) : QCompleter(line), db(db) {
         setModel(&model);
         setCompletionMode(QCompleter::UnfilteredPopupCompletion);
-        setModelSorting(QCompleter::CaseInsensitivelySortedModel);
-        setCaseSensitivity(Qt::CaseInsensitive);
-
-        connect(line, &QLineEdit::textChanged, this, &TortaCompleter::update);
+        connect(line, &QLineEdit::textEdited, this, &TortaCompleter::update);
     }
 
 signals:
@@ -265,10 +260,16 @@ private:
     }
 
     void setupBar() {
-        connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
-        connect(&bar, &QLineEdit::returnPressed, this, &DobosTorta::executeBar);
+        auto completer = new TortaCompleter(&bar, db);
+        bar.setCompleter(completer);
 
-        bar.setCompleter(new TortaCompleter(&bar, db, this));
+        connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
+        connect(&bar, &QLineEdit::returnPressed, [&, completer]{
+            load(bar.text());
+
+            if (GuessQueryType(bar.text()) != InSiteSearch)
+                escapeBar();
+        });
 
         bar.setVisible(false);
         setMenuWidget(&bar);
@@ -339,13 +340,6 @@ public:
 
 signals:
 private slots:
-    void executeBar() {
-        load(bar.text());
-
-        if (GuessQueryType(bar.text()) != InSiteSearch)
-            escapeBar();
-    }
-
     void barChanged() {
         const QString query(bar.text());
 
