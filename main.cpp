@@ -277,8 +277,6 @@ private:
             setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
         });
 
-        view.load(QUrl(HOMEPAGE));
-
         setCentralWidget(&view);
     }
 
@@ -303,7 +301,7 @@ private:
     }
 
 public:
-    DobosTorta() : bar(HOMEPAGE, this), view(this) {
+    DobosTorta() : bar(this), view(this) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -312,11 +310,7 @@ public:
         setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
     }
 
-signals:
-private slots:
-    void executeBar() {
-        const QString query(bar.text());
-
+    void load(const QString query) {
         switch (GuessQueryType(query)) {
         case URLWithScheme:
             view.load(query);
@@ -334,8 +328,14 @@ private slots:
             view.page()->findText(query.right(query.length() - 5));
             break;
         }
+    }
 
-        if (GuessQueryType(query) != InSiteSearch)
+signals:
+private slots:
+    void executeBar() {
+        load(bar.text());
+
+        if (GuessQueryType(bar.text()) != InSiteSearch)
             escapeBar();
     }
 
@@ -414,8 +414,17 @@ int main(int argc, char **argv) {
     QWebEngineSettings::defaultSettings()->setAttribute(
             QWebEngineSettings::FullScreenSupportEnabled, true);
 
-    DobosTorta window;
-    window.show();
+    if (argc > 1) {
+        for (int i=1; i<argc; i++) {
+            auto window = new DobosTorta;
+            window->load(argv[i]);
+            window->show();
+        }
+    } else {
+        auto window = new DobosTorta;
+        window->load(HOMEPAGE);
+        window->show();
+    }
 
     return app.exec();
 }
