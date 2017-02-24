@@ -7,6 +7,7 @@
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QStringListModel>
+#include <QUrlQuery>
 #include <QVBoxLayout>
 #include <QWebEngineFullScreenRequest>
 #include <QWebEngineProfile>
@@ -18,8 +19,9 @@
 #include <qtwebengineglobal.h>
 
 
-#define HOMEPAGE       "http://google.com"
-#define SEARCH_ENGINE  "http://google.com/search?q=%1"
+#define HOMEPAGE         "http://google.com"
+#define SEARCH_ENDPOINT  "http://google.com/search"
+#define SEARCH_QUERY     "q"
 
 #define HTTPS_FRAME_COLOR        "#00ff00"
 #define HTTPS_ERROR_FRAME_COLOR  "#ff0000"
@@ -295,6 +297,15 @@ private:
         bar.setSelection(prefix.length(), content.length());
     }
 
+    void webSearch(const QString &queryString) {
+        QUrl url(SEARCH_ENDPOINT);
+        QUrlQuery query;
+
+        query.addQueryItem(SEARCH_QUERY, queryString);
+        url.setQuery(query);
+        view.load(url);
+    }
+
 public:
     DobosTorta() : bar(HOMEPAGE, this), view(this) {
         setupBar();
@@ -308,30 +319,28 @@ public:
 signals:
 private slots:
     void executeBar() {
-        static const QString search(SEARCH_ENGINE);
         const QString query(bar.text());
 
         switch (GuessQueryType(query)) {
         case URLWithScheme:
             view.load(query);
-            bar.setVisible(false);
             break;
         case URLWithoutScheme:
             view.load("http://" + query);
-            bar.setVisible(false);
             break;
         case SearchWithScheme:
-            view.load(search.arg(query.right(query.length() - 7)));
-            bar.setVisible(false);
+            webSearch(query.right(query.length() - 7));
             break;
         case SearchWithoutScheme:
-            view.load(search.arg(query));
-            bar.setVisible(false);
+            webSearch(query);
             break;
         case InSiteSearch:
             view.page()->findText(query.right(query.length() - 5));
             break;
         }
+
+        if (GuessQueryType(query) != InSiteSearch)
+            escapeBar();
     }
 
     void barChanged() {
