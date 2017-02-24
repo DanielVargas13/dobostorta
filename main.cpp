@@ -31,6 +31,7 @@
 #define SHORTCUT_BACK     {SHORTCUT_META + Qt::Key_O}
 #define SHORTCUT_BAR      {SHORTCUT_META + Qt::Key_Colon}
 #define SHORTCUT_FIND     {SHORTCUT_META + Qt::Key_Slash}
+#define SHORTCUT_ESCAPE   {SHORTCUT_META + Qt::Key_BracketLeft}
 #define SHORTCUT_DOWN     {SHORTCUT_META + Qt::Key_J}
 #define SHORTCUT_UP       {SHORTCUT_META + Qt::Key_K}
 #define SHORTCUT_LEFT     {SHORTCUT_META + Qt::Key_H}
@@ -217,8 +218,10 @@ private:
         addShortcut(SHORTCUT_BACK,             &view, &QWebEngineView::back);
         addShortcut({Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
 
-        addShortcut(SHORTCUT_BAR,  this, &DobosTorta::toggleBar);
-        addShortcut(SHORTCUT_FIND, this, &DobosTorta::toggleFind);
+        addShortcut(SHORTCUT_BAR,     this, &DobosTorta::toggleBar);
+        addShortcut(SHORTCUT_FIND,    this, &DobosTorta::toggleFind);
+        addShortcut(SHORTCUT_ESCAPE,  this, &DobosTorta::escapeBar);
+        addShortcut({Qt::Key_Escape}, this, &DobosTorta::escapeBar);
 
         addShortcut(SHORTCUT_DOWN,    [&]{ scroll(0, SCROLL_STEP_Y);  });
         addShortcut({Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
@@ -361,8 +364,7 @@ private slots:
            bar.setText(bar.text().right(bar.text().length() - 5));
            bar.selectAll();
         } else {
-            view.setFocus(Qt::ShortcutFocusReason);
-            bar.setVisible(false);
+            escapeBar();
         }
     }
 
@@ -375,6 +377,12 @@ private slots:
             bar.setText("find:" + bar.text());
             bar.setSelection(5, bar.text().length());
         } else {
+            escapeBar();
+        }
+    }
+
+    void escapeBar() {
+        if (bar.hasFocus()) {
             view.findText("");
             view.setFocus(Qt::ShortcutFocusReason);
             bar.setVisible(false);
