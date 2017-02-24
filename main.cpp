@@ -25,16 +25,18 @@
 
 #define SHORTCUT_META     (Qt::CTRL)
 
-#define SHORTCUT_FORWARD  (SHORTCUT_META + Qt::Key_I)
-#define SHORTCUT_BACK     (SHORTCUT_META + Qt::Key_O)
-#define SHORTCUT_BAR      (SHORTCUT_META + Qt::Key_Colon)
-#define SHORTCUT_FIND     (SHORTCUT_META + Qt::Key_Slash)
-#define SHORTCUT_DOWN     (SHORTCUT_META + Qt::Key_J)
-#define SHORTCUT_UP       (SHORTCUT_META + Qt::Key_K)
-#define SHORTCUT_LEFT     (SHORTCUT_META + Qt::Key_H)
-#define SHORTCUT_RIGHT    (SHORTCUT_META + Qt::Key_L)
-#define SHORTCUT_ZOOMIN   (SHORTCUT_META + Qt::Key_Plus)
-#define SHORTCUT_ZOOMOUT  (SHORTCUT_META + Qt::Key_Minus)
+#define SHORTCUT_FORWARD  {SHORTCUT_META + Qt::Key_I}
+#define SHORTCUT_BACK     {SHORTCUT_META + Qt::Key_O}
+#define SHORTCUT_BAR      {SHORTCUT_META + Qt::Key_Colon}
+#define SHORTCUT_FIND     {SHORTCUT_META + Qt::Key_Slash}
+#define SHORTCUT_DOWN     {SHORTCUT_META + Qt::Key_J}
+#define SHORTCUT_UP       {SHORTCUT_META + Qt::Key_K}
+#define SHORTCUT_LEFT     {SHORTCUT_META + Qt::Key_H}
+#define SHORTCUT_RIGHT    {SHORTCUT_META + Qt::Key_L}
+#define SHORTCUT_TOP      {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
+#define SHORTCUT_BOTTOM   {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
+#define SHORTCUT_ZOOMIN   {SHORTCUT_META + Qt::Key_Plus}
+#define SHORTCUT_ZOOMOUT  {SHORTCUT_META + Qt::Key_Minus}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -211,21 +213,21 @@ private:
     }
 
     void setupShortcuts() {
-        addShortcut({SHORTCUT_FORWARD},        &view, &QWebEngineView::forward);
+        addShortcut(SHORTCUT_FORWARD,          &view, &QWebEngineView::forward);
         addShortcut({Qt::ALT + Qt::Key_Right}, &view, &QWebEngineView::forward);
-        addShortcut({SHORTCUT_BACK},           &view, &QWebEngineView::back);
+        addShortcut(SHORTCUT_BACK,             &view, &QWebEngineView::back);
         addShortcut({Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
 
-        addShortcut({SHORTCUT_BAR},  this, &DobosTorta::toggleBar);
-        addShortcut({SHORTCUT_FIND}, this, &DobosTorta::toggleFind);
+        addShortcut(SHORTCUT_BAR,  this, &DobosTorta::toggleBar);
+        addShortcut(SHORTCUT_FIND, this, &DobosTorta::toggleFind);
 
-        addShortcut({SHORTCUT_DOWN},  [&]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut(SHORTCUT_DOWN,    [&]{ scroll(0, SCROLL_STEP_Y);  });
         addShortcut({Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
-        addShortcut({SHORTCUT_UP},    [&]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut(SHORTCUT_UP,      [&]{ scroll(0, -SCROLL_STEP_Y); });
         addShortcut({Qt::Key_Up},     [&]{ scroll(0, -SCROLL_STEP_Y); });
-        addShortcut({SHORTCUT_RIGHT}, [&]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut(SHORTCUT_RIGHT,   [&]{ scroll(SCROLL_STEP_X, 0);  });
         addShortcut({Qt::Key_Right},  [&]{ scroll(SCROLL_STEP_X, 0);  });
-        addShortcut({SHORTCUT_LEFT},  [&]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut(SHORTCUT_LEFT,    [&]{ scroll(-SCROLL_STEP_X, 0); });
         addShortcut({Qt::Key_Left},   [&]{ scroll(-SCROLL_STEP_X, 0); });
 
         addShortcut({Qt::Key_PageDown}, [&]{
@@ -235,8 +237,21 @@ private:
             view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)");
         });
 
-        addShortcut({SHORTCUT_ZOOMIN},  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
-        addShortcut({SHORTCUT_ZOOMOUT}, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+        addShortcut(SHORTCUT_TOP, [&]{
+            view.page()->runJavaScript("window.scrollTo(0, 0);");
+        });
+        addShortcut({Qt::Key_Home}, [&]{
+            view.page()->runJavaScript("window.scrollTo(0, 0);");
+        });
+        addShortcut(SHORTCUT_BOTTOM, [&]{
+            view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
+        });
+        addShortcut({Qt::Key_End}, [&]{
+            view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
+        });
+
+        addShortcut(SHORTCUT_ZOOMIN,  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+        addShortcut(SHORTCUT_ZOOMOUT, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
     }
 
     void setupBar() {
