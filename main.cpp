@@ -126,11 +126,8 @@ public:
         search.exec();
 
         QStringList r;
-
         while (search.next())
             r << search.value(0).toString();
-
-        search.clear();
         return r;
     }
 };
