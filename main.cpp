@@ -3,7 +3,6 @@
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMainWindow>
-#include <QMessageLogger>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QStringListModel>
@@ -46,9 +45,6 @@
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
 #define ZOOM_STEP      0.1
-
-
-QMessageLogger logger;
 
 
 enum QueryType {
@@ -179,7 +175,7 @@ Q_OBJECT
 
 protected:
     virtual bool certificateError(const QWebEngineCertificateError &error) override {
-        logger.warning(("ssl error: " + error.errorDescription()).toStdString().c_str());
+        qWarning() << "ssl error:" << error.errorDescription();
         emit sslError();
         return true;
     }
