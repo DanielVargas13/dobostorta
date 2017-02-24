@@ -7,15 +7,12 @@
 #include <QStandardPaths>
 #include <QStringListModel>
 #include <QUrlQuery>
-#include <QVBoxLayout>
 #include <QWebEngineFullScreenRequest>
 #include <QWebEngineProfile>
 #include <QWebEngineSettings>
 #include <QWebEngineView>
 #include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
-#include <qtwebengineglobal.h>
 
 
 #define HOMEPAGE         "http://google.com"
@@ -407,7 +404,6 @@ int main(int argc, char **argv) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
 
-    QtWebEngine::initialize();
     QWebEngineSettings::defaultSettings()->setAttribute(
             QWebEngineSettings::FullScreenSupportEnabled, true);
 
