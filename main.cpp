@@ -5,10 +5,12 @@
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QProcess>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QStringListModel>
 #include <QUrlQuery>
+#include <QWebEngineContextMenuData>
 #include <QWebEngineFullScreenRequest>
 #include <QWebEngineProfile>
 #include <QWebEngineSettings>
@@ -48,6 +50,8 @@
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
 #define ZOOM_STEP      0.1
+
+#define DOWNLOAD_COMMAND  "wget"
 
 
 enum QueryType {
@@ -192,6 +196,22 @@ protected:
 public:
     TortaPage(QObject *parent) : QWebEnginePage(parent) {
         profile()->setHttpUserAgent("DobosTorta");
+    }
+
+    void triggerAction(WebAction action, bool checked=false) override {
+        QUrl link;
+
+        if (action == QWebEnginePage::DownloadLinkToDisk) {
+            link = contextMenuData().linkUrl();
+        } else if (action == QWebEnginePage::DownloadImageToDisk
+                   || action == QWebEnginePage::DownloadMediaToDisk) {
+            link = contextMenuData().mediaUrl();
+        }
+
+        if (link.isEmpty())
+            QWebEnginePage::triggerAction(action, checked);
+        else
+            QProcess::startDetached(DOWNLOAD_COMMAND, {link.toString()});
     }
 
 signals:
