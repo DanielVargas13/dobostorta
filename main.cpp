@@ -247,7 +247,6 @@ private:
     void setupShortcuts() {
         shortcuts.append({SHORTCUT_FORWARD,          [this]{ view.forward(); }});
         shortcuts.append({{Qt::ALT + Qt::Key_Right}, [this]{ view.forward(); }});
-        shortcuts.append({SHORTCUT_BACK,             [this]{ view.forward(); }});
         shortcuts.append({SHORTCUT_BACK,             [this]{ view.back();    }});
         shortcuts.append({{Qt::ALT + Qt::Key_Left},  [this]{ view.back();    }});
         shortcuts.append({SHORTCUT_RELOAD,           [this]{ view.reload();  }});
