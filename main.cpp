@@ -205,58 +205,59 @@ private:
 
 
     template<class Func>
-    void addShortcut(QKeySequence key,
+    void addShortcut(QWidget *sender,
+                     QKeySequence key,
                      const typename QtPrivate::FunctionPointer<Func>::Object *receiver,
                      Func method) {
-        connect(new QShortcut(key, this), &QShortcut::activated, receiver, method);
+        connect(new QShortcut(key, sender), &QShortcut::activated, receiver, method);
     }
 
-    template<class Func> void addShortcut(QKeySequence key, Func functor) {
-        connect(new QShortcut(key, this), &QShortcut::activated, functor);
+    template<class Func> void addShortcut(QWidget *sender, QKeySequence key, Func functor) {
+        connect(new QShortcut(key, sender), &QShortcut::activated, functor);
     }
 
     void setupShortcuts() {
-        addShortcut(SHORTCUT_FORWARD,          &view, &QWebEngineView::forward);
-        addShortcut({Qt::ALT + Qt::Key_Right}, &view, &QWebEngineView::forward);
-        addShortcut(SHORTCUT_BACK,             &view, &QWebEngineView::back);
-        addShortcut({Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
+        addShortcut(this, SHORTCUT_FORWARD,          &view, &QWebEngineView::forward);
+        addShortcut(this, {Qt::ALT + Qt::Key_Right}, &view, &QWebEngineView::forward);
+        addShortcut(this, SHORTCUT_BACK,             &view, &QWebEngineView::back);
+        addShortcut(this, {Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
 
-        addShortcut(SHORTCUT_BAR,     this, &DobosTorta::toggleBar);
-        addShortcut(SHORTCUT_FIND,    this, &DobosTorta::toggleFind);
-        addShortcut(SHORTCUT_ESCAPE,  this, &DobosTorta::escapeBar);
-        addShortcut({Qt::Key_Escape}, this, &DobosTorta::escapeBar);
+        addShortcut(this, SHORTCUT_BAR,     this, &DobosTorta::toggleBar);
+        addShortcut(this, SHORTCUT_FIND,    this, &DobosTorta::toggleFind);
+        addShortcut(&bar, SHORTCUT_ESCAPE,  this, &DobosTorta::escapeBar);
+        addShortcut(&bar, {Qt::Key_Escape}, this, &DobosTorta::escapeBar);
 
-        addShortcut(SHORTCUT_DOWN,    [&]{ scroll(0, SCROLL_STEP_Y);  });
-        addShortcut({Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
-        addShortcut(SHORTCUT_UP,      [&]{ scroll(0, -SCROLL_STEP_Y); });
-        addShortcut({Qt::Key_Up},     [&]{ scroll(0, -SCROLL_STEP_Y); });
-        addShortcut(SHORTCUT_RIGHT,   [&]{ scroll(SCROLL_STEP_X, 0);  });
-        addShortcut({Qt::Key_Right},  [&]{ scroll(SCROLL_STEP_X, 0);  });
-        addShortcut(SHORTCUT_LEFT,    [&]{ scroll(-SCROLL_STEP_X, 0); });
-        addShortcut({Qt::Key_Left},   [&]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut(this, SHORTCUT_DOWN,    [&]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut(this, {Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut(this, SHORTCUT_UP,      [&]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut(this, {Qt::Key_Up},     [&]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut(this, SHORTCUT_RIGHT,   [&]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut(this, {Qt::Key_Right},  [&]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut(this, SHORTCUT_LEFT,    [&]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut(this, {Qt::Key_Left},   [&]{ scroll(-SCROLL_STEP_X, 0); });
 
-        addShortcut({Qt::Key_PageDown}, [&]{
+        addShortcut(this, {Qt::Key_PageDown}, [&]{
             view.page()->runJavaScript("window.scrollBy(0, window.innerHeight / 2)");
         });
-        addShortcut({Qt::Key_PageUp}, [&]{
+        addShortcut(this, {Qt::Key_PageUp}, [&]{
             view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)");
         });
 
-        addShortcut(SHORTCUT_TOP, [&]{
+        addShortcut(this, SHORTCUT_TOP, [&]{
             view.page()->runJavaScript("window.scrollTo(0, 0);");
         });
-        addShortcut({Qt::Key_Home}, [&]{
+        addShortcut(this, {Qt::Key_Home}, [&]{
             view.page()->runJavaScript("window.scrollTo(0, 0);");
         });
-        addShortcut(SHORTCUT_BOTTOM, [&]{
+        addShortcut(this, SHORTCUT_BOTTOM, [&]{
             view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
         });
-        addShortcut({Qt::Key_End}, [&]{
+        addShortcut(this, {Qt::Key_End}, [&]{
             view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
         });
 
-        addShortcut(SHORTCUT_ZOOMIN,  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
-        addShortcut(SHORTCUT_ZOOMOUT, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+        addShortcut(this, SHORTCUT_ZOOMIN,  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+        addShortcut(this, SHORTCUT_ZOOMOUT, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
     }
 
     void setupBar() {
@@ -386,11 +387,9 @@ private slots:
     }
 
     void escapeBar() {
-        if (bar.hasFocus()) {
-            view.findText("");
-            view.setFocus(Qt::ShortcutFocusReason);
-            bar.setVisible(false);
-        }
+        view.findText("");
+        view.setFocus(Qt::ShortcutFocusReason);
+        bar.setVisible(false);
     }
 
     void toggleFullScreen(QWebEngineFullScreenRequest r) {
