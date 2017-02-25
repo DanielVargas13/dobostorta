@@ -305,6 +305,7 @@ private:
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
+        connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::toggleFullScreen);
 
         connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [&]{
             setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
