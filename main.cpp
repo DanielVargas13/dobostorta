@@ -1,5 +1,7 @@
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QCompleter>
+#include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMainWindow>
@@ -128,18 +130,35 @@ public:
 };
 
 
-class TortaCompleter : public QCompleter {
+class TortaBar : public QLineEdit {
 Q_OBJECT
 
 private:
+    QCompleter completer;
     QStringListModel model;
     TortaDatabase &db;
 
+protected:
+    virtual void keyPressEvent(QKeyEvent *e) override {
+        if (!completer.popup()->isVisible())
+            return QLineEdit::keyPressEvent(e);
+
+        if (e->key() == Qt::Key_Escape
+        || QKeySequence(e->key() + e->modifiers()).matches(SHORTCUT_ESCAPE)) {
+            completer.popup()->setVisible(false);
+            setVisible(false);
+        } else {
+            QLineEdit::keyPressEvent(e);
+        }
+    }
+
 public:
-    TortaCompleter(QLineEdit *line, TortaDatabase &db) : QCompleter(line), db(db) {
-        setModel(&model);
-        setCompletionMode(QCompleter::UnfilteredPopupCompletion);
-        connect(line, &QLineEdit::textEdited, this, &TortaCompleter::update);
+    TortaBar(TortaDatabase &db, QWidget *parent=Q_NULLPTR)
+            : QLineEdit(parent), completer(this), db(db) {
+        completer.setModel(&model);
+        completer.setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+        setCompleter(&completer);
+        connect(this, &QLineEdit::textEdited, this, &TortaBar::update);
     }
 
 signals:
@@ -199,7 +218,7 @@ Q_OBJECT
     friend class TortaView;
 
 private:
-    QLineEdit bar;
+    TortaBar bar;
     TortaView view;
     TortaDatabase &db;
 
@@ -261,11 +280,8 @@ private:
     }
 
     void setupBar() {
-        auto completer = new TortaCompleter(&bar, db);
-        bar.setCompleter(completer);
-
         connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
-        connect(&bar, &QLineEdit::returnPressed, [&, completer]{
+        connect(&bar, &QLineEdit::returnPressed, [&]{
             load(bar.text());
 
             if (GuessQueryType(bar.text()) != InSiteSearch)
@@ -310,7 +326,7 @@ private:
     }
 
 public:
-    DobosTorta(TortaDatabase &db) : bar(this), view(db, this), db(db) {
+    DobosTorta(TortaDatabase &db) : bar(db, this), view(db, this), db(db) {
         setupBar();
         setupView();
         setupShortcuts();
