@@ -30,6 +30,7 @@
 
 #define SHORTCUT_FORWARD  {SHORTCUT_META + Qt::Key_I}
 #define SHORTCUT_BACK     {SHORTCUT_META + Qt::Key_O}
+#define SHORTCUT_RELOAD   {SHORTCUT_META + Qt::Key_R}
 #define SHORTCUT_BAR      {SHORTCUT_META + Qt::Key_Colon}
 #define SHORTCUT_FIND     {SHORTCUT_META + Qt::Key_Slash}
 #define SHORTCUT_ESCAPE   {SHORTCUT_META + Qt::Key_BracketLeft}
@@ -240,6 +241,7 @@ private:
         addShortcut(this, {Qt::ALT + Qt::Key_Right}, &view, &QWebEngineView::forward);
         addShortcut(this, SHORTCUT_BACK,             &view, &QWebEngineView::back);
         addShortcut(this, {Qt::ALT + Qt::Key_Left},  &view, &QWebEngineView::back);
+        addShortcut(this, SHORTCUT_RELOAD,           &view, &QWebEngineView::reload);
 
         addShortcut(this, SHORTCUT_BAR,     this, &DobosTorta::toggleBar);
         addShortcut(this, SHORTCUT_FIND,    this, &DobosTorta::toggleFind);

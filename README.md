@@ -31,6 +31,7 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 |:------------------|:---------------|
 |Ctrl-i or Alt-Right|Forward history.|
 |Ctrl-o or Alt-Left |Back history.   |
+|Ctrl-r             |Reload page.    |
 
 #### Bar
 |Key             |Description                                                                  |
