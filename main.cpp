@@ -93,31 +93,24 @@ public:
 
         db.exec("CREATE TABLE IF NOT EXISTS history                 \
                    (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  \
-                    scheme TEXT NOT NULL,                           \
-                    url TEXT NOT NULL)");
+                    scheme TEXT NOT NULL, url TEXT NOT NULL)");
 
-        db.exec("CREATE VIEW IF NOT EXISTS recently AS  \
-                   SELECT MAX(timestamp) last_access,   \
-                          COUNT(timestamp) count,       \
-                          scheme,                       \
-                          url                           \
-                   FROM history                         \
-                   GROUP BY scheme || url               \
-                   ORDER BY MAX(timestamp) DESC");
+        db.exec("CREATE VIEW IF NOT EXISTS recently AS                         \
+                   SELECT MAX(timestamp) last_access, COUNT(timestamp) count,  \
+                          scheme, url                                          \
+                   FROM history                                                \
+                   GROUP BY scheme || url ORDER BY MAX(timestamp) DESC");
 
         append.prepare("INSERT INTO history (scheme, url) VALUES (?, ?)");
         append.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || url  \
-                          FROM recently              \
-                          WHERE url LIKE ?           \
-                          ORDER BY count DESC");
+        search.prepare("SELECT scheme || ':' || url FROM recently  \
+                          WHERE url LIKE ? ORDER BY count DESC");
         search.setForwardOnly(true);
     }
 
     ~TortaDatabase() {
         db.exec("DELETE FROM history WHERE timestamp < DATETIME('now', '-1 month')");
-        db.close();
     }
 
     void appendHistory(const QUrl &url) {
@@ -199,19 +192,14 @@ public:
     }
 
     void triggerAction(WebAction action, bool checked=false) override {
-        QUrl link;
-
         if (action == QWebEnginePage::DownloadLinkToDisk) {
-            link = contextMenuData().linkUrl();
+            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().linkUrl().toString()});
         } else if (action == QWebEnginePage::DownloadImageToDisk
                    || action == QWebEnginePage::DownloadMediaToDisk) {
-            link = contextMenuData().mediaUrl();
-        }
-
-        if (link.isEmpty())
+            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().mediaUrl().toString()});
+        } else {
             QWebEnginePage::triggerAction(action, checked);
-        else
-            QProcess::startDetached(DOWNLOAD_COMMAND, {link.toString()});
+        }
     }
 
 signals:
@@ -245,15 +233,13 @@ private:
 
 
     template<class Func>
-    void addShortcut(QWidget *sender,
-                     QKeySequence key,
-                     const typename QtPrivate::FunctionPointer<Func>::Object *receiver,
-                     Func method) {
-        connect(new QShortcut(key, sender), &QShortcut::activated, receiver, method);
+    void addShortcut(QWidget *from, QKeySequence key,
+                     const typename QtPrivate::FunctionPointer<Func>::Object *to, Func method) {
+        connect(new QShortcut(key, from), &QShortcut::activated, to, method);
     }
 
-    template<class Func> void addShortcut(QWidget *sender, QKeySequence key, Func functor) {
-        connect(new QShortcut(key, sender), &QShortcut::activated, functor);
+    template<class Func> void addShortcut(QWidget *from, QKeySequence key, Func to) {
+        connect(new QShortcut(key, from), &QShortcut::activated, to);
     }
 
     void setupShortcuts() {
@@ -268,51 +254,43 @@ private:
         addShortcut(&bar, SHORTCUT_ESCAPE,  this, &DobosTorta::escapeBar);
         addShortcut(&bar, {Qt::Key_Escape}, this, &DobosTorta::escapeBar);
 
-        addShortcut(this, SHORTCUT_DOWN,    [&]{ scroll(0, SCROLL_STEP_Y);  });
-        addShortcut(this, {Qt::Key_Down},   [&]{ scroll(0, SCROLL_STEP_Y);  });
-        addShortcut(this, SHORTCUT_UP,      [&]{ scroll(0, -SCROLL_STEP_Y); });
-        addShortcut(this, {Qt::Key_Up},     [&]{ scroll(0, -SCROLL_STEP_Y); });
-        addShortcut(this, SHORTCUT_RIGHT,   [&]{ scroll(SCROLL_STEP_X, 0);  });
-        addShortcut(this, {Qt::Key_Right},  [&]{ scroll(SCROLL_STEP_X, 0);  });
-        addShortcut(this, SHORTCUT_LEFT,    [&]{ scroll(-SCROLL_STEP_X, 0); });
-        addShortcut(this, {Qt::Key_Left},   [&]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut(this, SHORTCUT_DOWN,    [this]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut(this, {Qt::Key_Down},   [this]{ scroll(0, SCROLL_STEP_Y);  });
+        addShortcut(this, SHORTCUT_UP,      [this]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut(this, {Qt::Key_Up},     [this]{ scroll(0, -SCROLL_STEP_Y); });
+        addShortcut(this, SHORTCUT_RIGHT,   [this]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut(this, {Qt::Key_Right},  [this]{ scroll(SCROLL_STEP_X, 0);  });
+        addShortcut(this, SHORTCUT_LEFT,    [this]{ scroll(-SCROLL_STEP_X, 0); });
+        addShortcut(this, {Qt::Key_Left},   [this]{ scroll(-SCROLL_STEP_X, 0); });
 
-        addShortcut(this, {Qt::Key_PageDown}, [&]{
-            view.page()->runJavaScript("window.scrollBy(0, window.innerHeight / 2)");
-        });
-        addShortcut(this, {Qt::Key_PageUp}, [&]{
-            view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)");
-        });
+        QWebEnginePage *p = view.page();
 
-        addShortcut(this, SHORTCUT_TOP,
-                    [&]{ view.page()->runJavaScript("window.scrollTo(0, 0);"); });
-        addShortcut(this, {Qt::Key_Home},
-                    [&]{ view.page()->runJavaScript("window.scrollTo(0, 0);"); });
-        addShortcut(this, SHORTCUT_BOTTOM, [&]{
-            view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
-        });
-        addShortcut(this, {Qt::Key_End}, [&]{
-            view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
-        });
+        addShortcut(this, {Qt::Key_PageDown},
+                    [p]{ p->runJavaScript("window.scrollBy(0, window.innerHeight / 2)"); });
+        addShortcut(this, {Qt::Key_PageUp},
+                    [p]{ p->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)"); });
+
+        addShortcut(this, SHORTCUT_TOP, [p]{ p->runJavaScript("window.scrollTo(0, 0);"); });
+        addShortcut(this, {Qt::Key_Home}, [p]{ p->runJavaScript("window.scrollTo(0, 0);"); });
+        addShortcut(this, SHORTCUT_BOTTOM,
+                    [p]{ p->runJavaScript("window.scrollTo(0, document.body.scrollHeight);"); });
+        addShortcut(this, {Qt::Key_End},
+                    [p]{ p->runJavaScript("window.scrollTo(0, document.body.scrollHeight);"); });
 
         addShortcut(this, SHORTCUT_ZOOMIN,
-                    [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+                    [this]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
         addShortcut(this, SHORTCUT_ZOOMOUT,
-                    [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+                    [this]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
 
-        addShortcut(this, SHORTCUT_NEXT, [&]{
-            if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
-                inSiteSearch(bar.text(), QWebEnginePage::FindFlags());
-        });
-        addShortcut(this, SHORTCUT_PREV, [&]{
-            if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
-                inSiteSearch(bar.text(), QWebEnginePage::FindBackward);
-        });
+        addShortcut(this, SHORTCUT_NEXT,
+                    [this]{ inSiteSearch(bar.text(), QWebEnginePage::FindFlags()); });
+        addShortcut(this, SHORTCUT_PREV,
+                    [this]{ inSiteSearch(bar.text(), QWebEnginePage::FindBackward); });
     }
 
     void setupBar() {
         connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
-        connect(&bar, &QLineEdit::returnPressed, [&]{
+        connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
 
             if (GuessQueryType(bar.text()) != InSiteSearch)
@@ -328,9 +306,10 @@ private:
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
-        connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::toggleFullScreen);
+        connect(view.page(), &QWebEnginePage::fullScreenRequested,
+                this, &DobosTorta::toggleFullScreen);
 
-        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [&]{
+        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [this]{
             setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
         });
 
@@ -358,7 +337,10 @@ private:
     }
 
     void inSiteSearch(QString query, QWebEnginePage::FindFlags flags=QWebEnginePage::FindFlags()) {
-        view.findText(query.remove(0, 5), flags);
+        if (!query.isEmpty() && GuessQueryType(query) == InSiteSearch)
+            view.findText(query.remove(0, 5), flags);
+        else
+            view.findText("");
     }
 
 public:
@@ -395,12 +377,7 @@ public:
 
 private slots:
     void barChanged() {
-        const QString query(bar.text());
-
-        if (GuessQueryType(query) == InSiteSearch)
-            inSiteSearch(query);
-        else
-            view.findText("");
+        inSiteSearch(bar.text());
     }
 
     void linkHovered(const QUrl &url) {
@@ -435,7 +412,7 @@ private slots:
     }
 
     void escapeBar() {
-        view.findText("");
+        bar.setText("");
         view.setFocus(Qt::ShortcutFocusReason);
         bar.setVisible(false);
     }
