@@ -92,34 +92,29 @@ private:
 
 public:
     TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), append(db), search(db) {
-        db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/db");
+        db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation)
+                           + "/history");
         db.open();
 
         db.exec("CREATE TABLE IF NOT EXISTS history                 \
                    (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  \
-                    scheme TEXT NOT NULL, url TEXT NOT NULL)");
+                    scheme TEXT NOT NULL, address TEXT NOT NULL)");
 
-        db.exec("CREATE VIEW IF NOT EXISTS recently AS                         \
-                   SELECT MAX(timestamp) last_access, COUNT(timestamp) count,  \
-                          scheme, url                                          \
-                   FROM history                                                \
-                   GROUP BY scheme || url ORDER BY MAX(timestamp) DESC");
-
-        append.prepare("INSERT INTO history (scheme, url) VALUES (?, ?)");
+        append.prepare("INSERT INTO history (scheme, address) VALUES (?, ?)");
         append.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || url FROM recently  \
-                          WHERE url LIKE ? ORDER BY count DESC");
+        search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
+                          GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(*) DESC");
         search.setForwardOnly(true);
     }
 
     ~TortaDatabase() {
-        db.exec("DELETE FROM history WHERE timestamp < DATETIME('now', '-1 month')");
+        db.exec("DELETE FROM history WHERE timestamp < DATETIME('now', '-1 year')");
     }
 
-    void appendHistory(const QUrl &url) {
-        append.bindValue(0, url.scheme());
-        append.bindValue(1, url.url().remove(0, url.scheme().length() + 1));
+    void appendHistory(const QString &scheme, const QString &address) {
+        append.bindValue(0, scheme);
+        append.bindValue(1, address);
         append.exec();
     }
 
@@ -333,6 +328,8 @@ private:
     }
 
     void webSearch(const QString &queryString) {
+        db.appendHistory("search", queryString);
+
         QUrl url(SEARCH_ENDPOINT);
         QUrlQuery query;
 
@@ -390,7 +387,7 @@ private slots:
     }
 
     void urlChanged(const QUrl &url) {
-        db.appendHistory(url);
+        db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
 
         if (url.scheme() == "https")
             setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");
