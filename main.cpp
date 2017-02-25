@@ -111,6 +111,7 @@ public:
     }
 
     ~TortaDatabase() {
+        db.exec("DELETE FROM history WHERE timestamp < DATETIME('now', '-1 month')");
         db.close();
     }
 
