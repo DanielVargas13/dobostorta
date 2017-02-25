@@ -117,7 +117,6 @@ public:
         append.bindValue(0, url.scheme());
         append.bindValue(1, url.url().remove(0, url.scheme().length() + 1));
         append.exec();
-        append.clear();
     }
 
     QStringList searchHistory(QString query) {
