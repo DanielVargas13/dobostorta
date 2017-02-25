@@ -40,6 +40,8 @@
 #define SHORTCUT_BOTTOM   {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
 #define SHORTCUT_ZOOMIN   {SHORTCUT_META + Qt::Key_Plus}
 #define SHORTCUT_ZOOMOUT  {SHORTCUT_META + Qt::Key_Minus}
+#define SHORTCUT_NEXT     {SHORTCUT_META + Qt::Key_N}
+#define SHORTCUT_PREV     {SHORTCUT_META + Qt::Key_P}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -277,6 +279,15 @@ private:
 
         addShortcut(this, SHORTCUT_ZOOMIN,  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
         addShortcut(this, SHORTCUT_ZOOMOUT, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+
+        addShortcut(this, SHORTCUT_NEXT, [&]{
+            if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
+                inSiteSearch(bar.text(), true);
+        });
+        addShortcut(this, SHORTCUT_PREV, [&]{
+            if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
+                inSiteSearch(bar.text(), false);
+        });
     }
 
     void setupBar() {
@@ -325,6 +336,11 @@ private:
         view.load(url);
     }
 
+    void inSiteSearch(const QString &query, bool forward) {
+        view.findText(query.right(query.length() - 5),
+                      forward ? QWebEnginePage::FindFlags() : QWebEnginePage::FindBackward);
+    }
+
 public:
     DobosTorta(TortaDatabase &db) : bar(db, this), view(db, this), db(db) {
         setupBar();
@@ -350,7 +366,7 @@ public:
             webSearch(query);
             break;
         case InSiteSearch:
-            view.page()->findText(query.right(query.length() - 5));
+            inSiteSearch(query, true);
             break;
         }
     }
@@ -361,7 +377,7 @@ private slots:
         const QString query(bar.text());
 
         if (GuessQueryType(query) == InSiteSearch)
-            view.findText(query.right(query.length() - 5));
+            inSiteSearch(query, true);
         else
             view.findText("");
     }
