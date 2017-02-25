@@ -26,6 +26,13 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 |Ctrl-g Ctrl-g or Home|Scroll to page top.   |
 |Ctrl-G or End        |Scroll to page bottom.|
 
+### Zoom
+|Key       |Description     |
+|:---------|:---------------|
+|Ctrl-Plus |Zoom in         |
+|Ctrl-Minus|Zoom out        |
+|Ctrl-0    |Reset zoom level|
+
 #### History
 |Key                |Description     |
 |:------------------|:---------------|

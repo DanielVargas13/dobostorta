@@ -28,24 +28,25 @@
 #define HTTPS_ERROR_FRAME_COLOR  "#ff0000"
 #define DEFAULT_FRAME_COLOR      "#808080"
 
-#define SHORTCUT_META     (Qt::CTRL)
+#define SHORTCUT_META  (Qt::CTRL)
 
-#define SHORTCUT_FORWARD  {SHORTCUT_META + Qt::Key_I}
-#define SHORTCUT_BACK     {SHORTCUT_META + Qt::Key_O}
-#define SHORTCUT_RELOAD   {SHORTCUT_META + Qt::Key_R}
-#define SHORTCUT_BAR      {SHORTCUT_META + Qt::Key_Colon}
-#define SHORTCUT_FIND     {SHORTCUT_META + Qt::Key_Slash}
-#define SHORTCUT_ESCAPE   {SHORTCUT_META + Qt::Key_BracketLeft}
-#define SHORTCUT_DOWN     {SHORTCUT_META + Qt::Key_J}
-#define SHORTCUT_UP       {SHORTCUT_META + Qt::Key_K}
-#define SHORTCUT_LEFT     {SHORTCUT_META + Qt::Key_H}
-#define SHORTCUT_RIGHT    {SHORTCUT_META + Qt::Key_L}
-#define SHORTCUT_TOP      {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
-#define SHORTCUT_BOTTOM   {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
-#define SHORTCUT_ZOOMIN   {SHORTCUT_META + Qt::Key_Plus}
-#define SHORTCUT_ZOOMOUT  {SHORTCUT_META + Qt::Key_Minus}
-#define SHORTCUT_NEXT     {SHORTCUT_META + Qt::Key_N}
-#define SHORTCUT_PREV     {SHORTCUT_META + Qt::Key_P}
+#define SHORTCUT_FORWARD    {SHORTCUT_META + Qt::Key_I}
+#define SHORTCUT_BACK       {SHORTCUT_META + Qt::Key_O}
+#define SHORTCUT_RELOAD     {SHORTCUT_META + Qt::Key_R}
+#define SHORTCUT_BAR        {SHORTCUT_META + Qt::Key_Colon}
+#define SHORTCUT_FIND       {SHORTCUT_META + Qt::Key_Slash}
+#define SHORTCUT_ESCAPE     {SHORTCUT_META + Qt::Key_BracketLeft}
+#define SHORTCUT_DOWN       {SHORTCUT_META + Qt::Key_J}
+#define SHORTCUT_UP         {SHORTCUT_META + Qt::Key_K}
+#define SHORTCUT_LEFT       {SHORTCUT_META + Qt::Key_H}
+#define SHORTCUT_RIGHT      {SHORTCUT_META + Qt::Key_L}
+#define SHORTCUT_TOP        {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
+#define SHORTCUT_BOTTOM     {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
+#define SHORTCUT_ZOOMIN     {SHORTCUT_META + Qt::Key_Plus}
+#define SHORTCUT_ZOOMOUT    {SHORTCUT_META + Qt::Key_Minus}
+#define SHORTCUT_ZOOMRESET  {SHORTCUT_META + Qt::Key_0}
+#define SHORTCUT_NEXT       {SHORTCUT_META + Qt::Key_N}
+#define SHORTCUT_PREV       {SHORTCUT_META + Qt::Key_P}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -299,6 +300,7 @@ private:
                     [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
         addShortcut(this, SHORTCUT_ZOOMOUT,
                     [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+        addShortcut(this, SHORTCUT_ZOOMRESET, [&]{ view.setZoomFactor(1.0); });
 
         addShortcut(this, SHORTCUT_NEXT, [&]{
             if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
