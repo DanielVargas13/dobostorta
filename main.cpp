@@ -19,6 +19,9 @@
 #include <QtSql/QSqlQuery>
 
 
+#define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
+                    "Chrome/55.0.0.0 Safari/537.36 DobosTorta/dev-" GIT_VERSION
+
 #define HOMEPAGE         "http://google.com"
 #define SEARCH_ENDPOINT  "http://google.com/search"
 #define SEARCH_QUERY     "q"
@@ -196,7 +199,7 @@ protected:
 
 public:
     TortaPage(QObject *parent) : QWebEnginePage(parent) {
-        profile()->setHttpUserAgent("DobosTorta");
+        profile()->setHttpUserAgent(USER_AGENT);
     }
 
     void triggerAction(WebAction action, bool checked=false) override {
