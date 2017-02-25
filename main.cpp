@@ -115,7 +115,7 @@ public:
 
     void appendHistory(const QUrl &url) {
         append.bindValue(0, url.scheme());
-        append.bindValue(1, url.url().right(url.url().length() - url.scheme().length() - 1));
+        append.bindValue(1, url.url().remove(0, url.scheme().length() + 1));
         append.exec();
         append.clear();
     }
@@ -137,11 +137,10 @@ Q_OBJECT
 
 private:
     QCompleter completer;
-    QStringListModel model;
     TortaDatabase &db;
 
 protected:
-    virtual void keyPressEvent(QKeyEvent *e) override {
+    void keyPressEvent(QKeyEvent *e) override {
         if (!completer.popup()->isVisible())
             return QLineEdit::keyPressEvent(e);
 
@@ -155,15 +154,13 @@ protected:
     }
 
 public:
-    TortaBar(TortaDatabase &db, QWidget *parent=Q_NULLPTR)
-            : QLineEdit(parent), completer(this), db(db) {
-        completer.setModel(&model);
+    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent), completer(this), db(db) {
+        completer.setModel(new QStringListModel(&completer));
         completer.setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setCompleter(&completer);
         connect(this, &QLineEdit::textEdited, this, &TortaBar::update);
     }
 
-signals:
 private slots:
     void update(const QString &word) {
         const QueryType type(GuessQueryType(word));
@@ -175,7 +172,7 @@ private slots:
             list << "search:" + word << "find:" + word;
 
         list << db.searchHistory(word);
-        model.setStringList(list);
+        static_cast<QStringListModel *>(completer.model())->setStringList(list);
     }
 };
 
@@ -184,14 +181,14 @@ class TortaPage : public QWebEnginePage {
 Q_OBJECT
 
 protected:
-    virtual bool certificateError(const QWebEngineCertificateError &error) override {
+    bool certificateError(const QWebEngineCertificateError &error) override {
         qWarning() << "ssl error:" << error.errorDescription();
         emit sslError();
         return true;
     }
 
 public:
-    TortaPage(QObject *parent=Q_NULLPTR) : QWebEnginePage(parent) {
+    TortaPage(QObject *parent) : QWebEnginePage(parent) {
         profile()->setHttpUserAgent("DobosTorta");
     }
 
@@ -205,11 +202,11 @@ private:
     TortaDatabase &db;
 
 protected:
-    virtual QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
+    QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
-    TortaView(TortaDatabase &db, QWidget *parent=Q_NULLPTR) : QWebEngineView(parent), db(db) {
-        setPage(new TortaPage());
+    TortaView(QWidget *parent, TortaDatabase &db) : QWebEngineView(parent), db(db) {
+        setPage(new TortaPage(this));
     }
 };
 
@@ -264,12 +261,10 @@ private:
             view.page()->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)");
         });
 
-        addShortcut(this, SHORTCUT_TOP, [&]{
-            view.page()->runJavaScript("window.scrollTo(0, 0);");
-        });
-        addShortcut(this, {Qt::Key_Home}, [&]{
-            view.page()->runJavaScript("window.scrollTo(0, 0);");
-        });
+        addShortcut(this, SHORTCUT_TOP,
+                    [&]{ view.page()->runJavaScript("window.scrollTo(0, 0);"); });
+        addShortcut(this, {Qt::Key_Home},
+                    [&]{ view.page()->runJavaScript("window.scrollTo(0, 0);"); });
         addShortcut(this, SHORTCUT_BOTTOM, [&]{
             view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
         });
@@ -277,16 +272,18 @@ private:
             view.page()->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
         });
 
-        addShortcut(this, SHORTCUT_ZOOMIN,  [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
-        addShortcut(this, SHORTCUT_ZOOMOUT, [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
+        addShortcut(this, SHORTCUT_ZOOMIN,
+                    [&]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); });
+        addShortcut(this, SHORTCUT_ZOOMOUT,
+                    [&]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); });
 
         addShortcut(this, SHORTCUT_NEXT, [&]{
             if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
-                inSiteSearch(bar.text(), true);
+                inSiteSearch(bar.text(), QWebEnginePage::FindFlags());
         });
         addShortcut(this, SHORTCUT_PREV, [&]{
             if (bar.isVisible() && GuessQueryType(bar.text()) == InSiteSearch)
-                inSiteSearch(bar.text(), false);
+                inSiteSearch(bar.text(), QWebEnginePage::FindBackward);
         });
     }
 
@@ -320,7 +317,7 @@ private:
         view.page()->runJavaScript(QString("window.scrollBy(%1, %2)").arg(x).arg(y));
     }
 
-    void openBar(QString prefix, QString content) {
+    void openBar(const QString &prefix, const QString &content) {
         bar.setText(prefix + content);
         bar.setVisible(true);
         bar.setFocus(Qt::ShortcutFocusReason);
@@ -336,22 +333,23 @@ private:
         view.load(url);
     }
 
-    void inSiteSearch(const QString &query, bool forward) {
-        view.findText(query.right(query.length() - 5),
-                      forward ? QWebEnginePage::FindFlags() : QWebEnginePage::FindBackward);
+    void inSiteSearch(QString query, QWebEnginePage::FindFlags flags=QWebEnginePage::FindFlags()) {
+        view.findText(query.remove(0, 5), flags);
     }
 
 public:
-    DobosTorta(TortaDatabase &db) : bar(db, this), view(db, this), db(db) {
+    DobosTorta(TortaDatabase &db) : bar(this, db), view(this, db), db(db) {
         setupBar();
         setupView();
         setupShortcuts();
 
         setContentsMargins(2, 2, 2, 2);
         setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
+
+        show();
     }
 
-    void load(const QString query) {
+    void load(QString query) {
         switch (GuessQueryType(query)) {
         case URLWithScheme:
             view.load(query);
@@ -360,41 +358,35 @@ public:
             view.load("http://" + query);
             break;
         case SearchWithScheme:
-            webSearch(query.right(query.length() - 7));
+            webSearch(query.remove(0, 7));
             break;
         case SearchWithoutScheme:
             webSearch(query);
             break;
         case InSiteSearch:
-            inSiteSearch(query, true);
+            inSiteSearch(query);
             break;
         }
     }
 
-signals:
 private slots:
     void barChanged() {
         const QString query(bar.text());
 
         if (GuessQueryType(query) == InSiteSearch)
-            inSiteSearch(query, true);
+            inSiteSearch(query);
         else
             view.findText("");
     }
 
     void linkHovered(const QUrl &url) {
-        const QString str(url.toDisplayString());
-
-        if (str.length() == 0)
-            setWindowTitle(view.title());
-        else
-            setWindowTitle(str);
+        setWindowTitle(url.isEmpty() ? view.title() : url.toDisplayString());
     }
 
-    void urlChanged(const QUrl &u) {
-        db.appendHistory(u);
+    void urlChanged(const QUrl &url) {
+        db.appendHistory(url);
 
-        if (u.scheme() == "https")
+        if (url.scheme() == "https")
             setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");
         else
             setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
@@ -404,7 +396,7 @@ private slots:
         if (!bar.hasFocus())
             openBar("", view.url().toDisplayString());
         else if (GuessQueryType(bar.text()) == InSiteSearch)
-            openBar("", bar.text().right(bar.text().length() - 5));
+            openBar("", bar.text().remove(0, 5));
         else
             escapeBar();
     }
@@ -440,7 +432,6 @@ private slots:
 
 QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
     auto window = new DobosTorta(db);
-    window->show();
     if (type != QWebEnginePage::WebBrowserBackgroundTab)
         window->setFocus();
     return &window->view;
@@ -457,15 +448,10 @@ int main(int argc, char **argv) {
     TortaDatabase db;
 
     if (argc > 1) {
-        for (int i=1; i<argc; i++) {
-            auto window = new DobosTorta(db);
-            window->load(argv[i]);
-            window->show();
-        }
+        for (int i=1; i<argc; i++)
+            (new DobosTorta(db))->load(argv[i]);
     } else {
-        auto window = new DobosTorta(db);
-        window->load(HOMEPAGE);
-        window->show();
+        (new DobosTorta(db))->load(HOMEPAGE);
     }
 
     return app.exec();
