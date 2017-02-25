@@ -21,6 +21,7 @@
 #define SEARCH_ENDPOINT  "http://google.com/search"
 #define SEARCH_QUERY     "q"
 
+#define FRAME_WIDTH              2, 2, 2, 2
 #define HTTPS_FRAME_COLOR        "#00ff00"
 #define HTTPS_ERROR_FRAME_COLOR  "#ff0000"
 #define DEFAULT_FRAME_COLOR      "#808080"
@@ -342,7 +343,7 @@ public:
         setupView();
         setupShortcuts();
 
-        setContentsMargins(2, 2, 2, 2);
+        setContentsMargins(FRAME_WIDTH);
         setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
 
         show();
