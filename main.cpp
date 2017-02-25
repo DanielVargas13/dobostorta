@@ -96,15 +96,16 @@ public:
                            + "/history");
         db.open();
 
-        db.exec("CREATE TABLE IF NOT EXISTS history                 \
-                   (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  \
+        db.exec("CREATE TABLE IF NOT EXISTS history                        \
+                   (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,  \
                     scheme TEXT NOT NULL, address TEXT NOT NULL)");
+        db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
         append.prepare("INSERT INTO history (scheme, address) VALUES (?, ?)");
         append.setForwardOnly(true);
 
         search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
-                          GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(*) DESC");
+                          GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(timestamp) DESC");
         search.setForwardOnly(true);
     }
 
@@ -191,11 +192,11 @@ public:
     }
 
     void triggerAction(WebAction action, bool checked=false) override {
-        if (action == QWebEnginePage::DownloadLinkToDisk) {
-            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().linkUrl().toString()});
-        } else if (action == QWebEnginePage::DownloadImageToDisk
-                   || action == QWebEnginePage::DownloadMediaToDisk) {
+        if (action == QWebEnginePage::DownloadImageToDisk
+        || action == QWebEnginePage::DownloadMediaToDisk) {
             QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().mediaUrl().toString()});
+        } else if (action == QWebEnginePage::DownloadLinkToDisk) {
+            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().linkUrl().toString()});
         } else {
             QWebEnginePage::triggerAction(action, checked);
         }
@@ -254,10 +255,10 @@ private:
         shortcuts.append({SHORTCUT_BAR,  [this]{ toggleBar();  }});
         shortcuts.append({SHORTCUT_FIND, [this]{ toggleFind(); }});
 
-        shortcuts.append({SHORTCUT_DOWN,   [this]{ scroll(0, SCROLL_STEP_Y);  }});
-        shortcuts.append({SHORTCUT_UP,     [this]{ scroll(0, -SCROLL_STEP_Y); }});
-        shortcuts.append({SHORTCUT_RIGHT,  [this]{ scroll(SCROLL_STEP_X, 0);  }});
-        shortcuts.append({SHORTCUT_LEFT,   [this]{ scroll(-SCROLL_STEP_X, 0); }});
+        shortcuts.append({SHORTCUT_DOWN,  [this]{ scroll(0, SCROLL_STEP_Y);  }});
+        shortcuts.append({SHORTCUT_UP,    [this]{ scroll(0, -SCROLL_STEP_Y); }});
+        shortcuts.append({SHORTCUT_RIGHT, [this]{ scroll(SCROLL_STEP_X, 0);  }});
+        shortcuts.append({SHORTCUT_LEFT,  [this]{ scroll(-SCROLL_STEP_X, 0); }});
 
         QWebEnginePage *p = view.page();
 
@@ -288,7 +289,7 @@ private:
     }
 
     void setupBar() {
-        connect(&bar, &QLineEdit::textChanged, this, &DobosTorta::barChanged);
+        connect(&bar, &QLineEdit::textChanged, [this]{ inSiteSearch(bar.text()); });
         connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
 
@@ -307,7 +308,9 @@ private:
     void setupView() {
         connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
-        connect(view.page(), &QWebEnginePage::linkHovered, this, &DobosTorta::linkHovered);
+        connect(view.page(), &QWebEnginePage::linkHovered, [this](const QUrl &url){
+            setWindowTitle(url.isEmpty() ? view.title() : url.toDisplayString());
+        });
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
         connect(view.page(), &QWebEnginePage::fullScreenRequested,
                 this, &DobosTorta::toggleFullScreen);
@@ -381,14 +384,6 @@ public:
     }
 
 private slots:
-    void barChanged() {
-        inSiteSearch(bar.text());
-    }
-
-    void linkHovered(const QUrl &url) {
-        setWindowTitle(url.isEmpty() ? view.title() : url.toDisplayString());
-    }
-
     void urlChanged(const QUrl &url) {
         db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
 
