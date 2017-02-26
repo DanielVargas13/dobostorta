@@ -37,6 +37,7 @@
 #define SHORTCUT_BACK       {SHORTCUT_META + Qt::Key_O}
 #define SHORTCUT_RELOAD     {SHORTCUT_META + Qt::Key_R}
 #define SHORTCUT_BAR        {SHORTCUT_META + Qt::Key_Colon}
+#define SHORTCUT_BAR_ALT    {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
 #define SHORTCUT_FIND       {SHORTCUT_META + Qt::Key_Slash}
 #define SHORTCUT_ESCAPE     {SHORTCUT_META + Qt::Key_BracketLeft}
 #define SHORTCUT_DOWN       {SHORTCUT_META + Qt::Key_J}
@@ -283,8 +284,9 @@ private:
         shortcuts.append({{Qt::ALT + Qt::Key_Left},  [this]{ view.back();    }});
         shortcuts.append({SHORTCUT_RELOAD,           [this]{ view.reload();  }});
 
-        shortcuts.append({SHORTCUT_BAR,  [this]{ toggleBar();  }});
-        shortcuts.append({SHORTCUT_FIND, [this]{ toggleFind(); }});
+        shortcuts.append({SHORTCUT_BAR,     [this]{ toggleBar();  }});
+        shortcuts.append({SHORTCUT_BAR_ALT, [this]{ toggleBar();  }});
+        shortcuts.append({SHORTCUT_FIND,    [this]{ toggleFind(); }});
 
         shortcuts.append({SHORTCUT_DOWN,  [this]{ scroll(0, SCROLL_STEP_Y);  }});
         shortcuts.append({SHORTCUT_UP,    [this]{ scroll(0, -SCROLL_STEP_Y); }});
