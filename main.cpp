@@ -89,9 +89,11 @@ private:
     QSqlDatabase db;
     QSqlQuery append;
     QSqlQuery search;
+    QSqlQuery forward;
 
 public:
-    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), append(db), search(db) {
+    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")),
+                      append(db), search(db), forward(db) {
         db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation)
                            + "/history");
         db.open();
@@ -107,6 +109,12 @@ public:
         search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
                           GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(timestamp) DESC");
         search.setForwardOnly(true);
+
+        forward.prepare("SELECT scheme, address FROM history                          \
+                           WHERE (scheme = 'search' AND address LIKE ?)               \
+                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE ?)  \
+                           LIMIT 1");
+        forward.setForwardOnly(true);
     }
 
     ~TortaDatabase() {
@@ -127,6 +135,18 @@ public:
         while (search.next())
             r << search.value(0).toString();
         return r;
+    }
+
+    QString firstForwardMatch(QString query) {
+        forward.bindValue(0, query.replace("%%", "\\%%") + "%%");
+        forward.bindValue(1, query.replace("%%", "\\%%") + "%%");
+        forward.exec();
+
+        forward.next();
+        if (forward.value(0).toString() == "search")
+            return forward.value(1).toString();
+        else
+            return forward.value(1).toString().right(forward.value(1).toString().length() - 2);
     }
 };
 
@@ -162,6 +182,16 @@ public:
 
 private slots:
     void update(const QString &word) {
+        static QString before;
+
+        if (!word.isEmpty() && !before.startsWith(word)) {
+            auto match = db.firstForwardMatch(word);
+            if (!match.isEmpty() && match != word) {
+                setText(match);
+                setSelection(word.length(), match.length());
+            }
+        }
+
         const QueryType type(GuessQueryType(word));
         QStringList list;
 
@@ -172,6 +202,8 @@ private slots:
 
         list << db.searchHistory(word);
         static_cast<QStringListModel *>(completer.model())->setStringList(list);
+
+        before = word;
     }
 };
 
