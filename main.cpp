@@ -33,24 +33,25 @@
 
 #define SHORTCUT_META  (Qt::CTRL)
 
-#define SHORTCUT_FORWARD    {SHORTCUT_META + Qt::Key_I}
-#define SHORTCUT_BACK       {SHORTCUT_META + Qt::Key_O}
-#define SHORTCUT_RELOAD     {SHORTCUT_META + Qt::Key_R}
-#define SHORTCUT_BAR        {SHORTCUT_META + Qt::Key_Colon}
-#define SHORTCUT_BAR_ALT    {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
-#define SHORTCUT_FIND       {SHORTCUT_META + Qt::Key_Slash}
-#define SHORTCUT_ESCAPE     {SHORTCUT_META + Qt::Key_BracketLeft}
-#define SHORTCUT_DOWN       {SHORTCUT_META + Qt::Key_J}
-#define SHORTCUT_UP         {SHORTCUT_META + Qt::Key_K}
-#define SHORTCUT_LEFT       {SHORTCUT_META + Qt::Key_H}
-#define SHORTCUT_RIGHT      {SHORTCUT_META + Qt::Key_L}
-#define SHORTCUT_TOP        {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
-#define SHORTCUT_BOTTOM     {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
-#define SHORTCUT_ZOOMIN     {SHORTCUT_META + Qt::Key_Plus}
-#define SHORTCUT_ZOOMOUT    {SHORTCUT_META + Qt::Key_Minus}
-#define SHORTCUT_ZOOMRESET  {SHORTCUT_META + Qt::Key_0}
-#define SHORTCUT_NEXT       {SHORTCUT_META + Qt::Key_N}
-#define SHORTCUT_PREV       {SHORTCUT_META + Qt::Key_P}
+#define SHORTCUT_FORWARD     {SHORTCUT_META + Qt::Key_I}
+#define SHORTCUT_BACK        {SHORTCUT_META + Qt::Key_O}
+#define SHORTCUT_RELOAD      {SHORTCUT_META + Qt::Key_R}
+#define SHORTCUT_BAR         {SHORTCUT_META + Qt::Key_Colon}
+#define SHORTCUT_BAR_ALT     {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
+#define SHORTCUT_FIND        {SHORTCUT_META + Qt::Key_Slash}
+#define SHORTCUT_ESCAPE      {SHORTCUT_META + Qt::Key_BracketLeft}
+#define SHORTCUT_DOWN        {SHORTCUT_META + Qt::Key_J}
+#define SHORTCUT_UP          {SHORTCUT_META + Qt::Key_K}
+#define SHORTCUT_LEFT        {SHORTCUT_META + Qt::Key_H}
+#define SHORTCUT_RIGHT       {SHORTCUT_META + Qt::Key_L}
+#define SHORTCUT_TOP         {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
+#define SHORTCUT_BOTTOM      {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
+#define SHORTCUT_ZOOMIN      {SHORTCUT_META + Qt::Key_Plus}
+#define SHORTCUT_ZOOMIN_ALT  {SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus}
+#define SHORTCUT_ZOOMOUT     {SHORTCUT_META + Qt::Key_Minus}
+#define SHORTCUT_ZOOMRESET   {SHORTCUT_META + Qt::Key_0}
+#define SHORTCUT_NEXT        {SHORTCUT_META + Qt::Key_N}
+#define SHORTCUT_PREV        {SHORTCUT_META + Qt::Key_P}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -301,8 +302,9 @@ private:
         shortcuts.append({{Qt::Key_End},   js("window.scrollTo(0, document.body.scrollHeight);")});
 
         auto zoom = [&](float x){ return [this, x]{ view.setZoomFactor(view.zoomFactor() + x); }; };
-        shortcuts.append({SHORTCUT_ZOOMIN,  zoom(+ZOOM_STEP)});
-        shortcuts.append({SHORTCUT_ZOOMOUT, zoom(-ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMIN,     zoom(+ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMIN_ALT, zoom(+ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMRESET, [this]{ view.setZoomFactor(1.0); }});
 
         auto find = [&](QWebEnginePage::FindFlags f){ return [&]{ inSiteSearch(bar.text(), f); }; };
