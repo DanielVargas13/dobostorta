@@ -71,7 +71,6 @@ enum QueryType {
 QueryType GuessQueryType(const QString &str) {
     static const QRegExp hasScheme("^[a-zA-Z0-9]+://");
     static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
-
     if (str.startsWith("search:"))
         return SearchWithScheme;
     else if (str.startsWith("find:"))
@@ -88,13 +87,12 @@ QueryType GuessQueryType(const QString &str) {
 class TortaDatabase {
 private:
     QSqlDatabase db;
-    QSqlQuery append;
+    QSqlQuery add;
     QSqlQuery search;
     QSqlQuery forward;
 
 public:
-    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")),
-                      append(db), search(db), forward(db) {
+    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), add(db), search(db), forward(db) {
         db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation)
                            + "/history");
         db.open();
@@ -104,8 +102,8 @@ public:
                     scheme TEXT NOT NULL, address TEXT NOT NULL)");
         db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
-        append.prepare("INSERT INTO history (scheme, address) VALUES (?, ?)");
-        append.setForwardOnly(true);
+        add.prepare("INSERT INTO history (scheme, address) VALUES (?, ?)");
+        add.setForwardOnly(true);
 
         search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
                           GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(timestamp) DESC");
@@ -123,15 +121,14 @@ public:
     }
 
     void appendHistory(const QString &scheme, const QString &address) {
-        append.bindValue(0, scheme);
-        append.bindValue(1, address);
-        append.exec();
+        add.bindValue(0, scheme);
+        add.bindValue(1, address);
+        add.exec();
     }
 
     QStringList searchHistory(QString query) {
         search.bindValue(0, "%%" + query.replace("%%", "\\%%") + "%%");
         search.exec();
-
         QStringList r;
         while (search.next())
             r << search.value(0).toString();
@@ -142,9 +139,9 @@ public:
         forward.bindValue(0, query.replace("%%", "\\%%") + "%%");
         forward.bindValue(1, query.replace("%%", "\\%%") + "%%");
         forward.exec();
-
-        forward.next();
-        if (forward.value(0).toString() == "search")
+        if (!forward.next())
+            return "";
+        else if (forward.value(0).toString() == "search")
             return forward.value(1).toString();
         else
             return forward.value(1).toString().right(forward.value(1).toString().length() - 2);
@@ -184,7 +181,6 @@ public:
 private slots:
     void update(const QString &word) {
         static QString before;
-
         if (!word.isEmpty() && !before.startsWith(word)) {
             auto match = db.firstForwardMatch(word);
             if (!match.isEmpty() && match != word) {
@@ -192,6 +188,7 @@ private slots:
                 setSelection(word.length(), match.length());
             }
         }
+        before = word;
 
         const QueryType type(GuessQueryType(word));
         QStringList list;
@@ -203,8 +200,6 @@ private slots:
 
         list << db.searchHistory(word);
         static_cast<QStringListModel *>(completer.model())->setStringList(list);
-
-        before = word;
     }
 };
 
@@ -288,37 +283,31 @@ private:
         shortcuts.append({SHORTCUT_BAR_ALT, [this]{ toggleBar();  }});
         shortcuts.append({SHORTCUT_FIND,    [this]{ toggleFind(); }});
 
-        shortcuts.append({SHORTCUT_DOWN,  [this]{ scroll(0, SCROLL_STEP_Y);  }});
-        shortcuts.append({SHORTCUT_UP,    [this]{ scroll(0, -SCROLL_STEP_Y); }});
-        shortcuts.append({SHORTCUT_RIGHT, [this]{ scroll(SCROLL_STEP_X, 0);  }});
-        shortcuts.append({SHORTCUT_LEFT,  [this]{ scroll(-SCROLL_STEP_X, 0); }});
-
         QWebEnginePage *p = view.page();
+        auto js = [&](const QString &script){ return [p, script]{ p->runJavaScript(script); }; };
+        auto sc = [&](int x, int y){ return js(QString("window.scrollBy(%1, %2)").arg(x).arg(y)); };
 
-        shortcuts.append({{Qt::Key_PageDown},
-                          [p]{ p->runJavaScript("window.scrollBy(0, window.innerHeight / 2)"); }});
-        shortcuts.append({{Qt::Key_PageUp},
-                          [p]{ p->runJavaScript("window.scrollBy(0, -window.innerHeight / 2)"); }});
+        shortcuts.append({SHORTCUT_DOWN,  sc(0, SCROLL_STEP_Y)});
+        shortcuts.append({SHORTCUT_UP,    sc(0, -SCROLL_STEP_Y)});
+        shortcuts.append({SHORTCUT_RIGHT, sc(SCROLL_STEP_X, 0)});
+        shortcuts.append({SHORTCUT_LEFT,  sc(-SCROLL_STEP_X, 0)});
 
-        shortcuts.append({SHORTCUT_TOP,    [p]{ p->runJavaScript("window.scrollTo(0, 0);"); }});
-        shortcuts.append({{Qt::Key_Home},  [p]{ p->runJavaScript("window.scrollTo(0, 0);"); }});
-        shortcuts.append({SHORTCUT_BOTTOM, [p]{
-            p->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
-        }});
-        shortcuts.append({{Qt::Key_End}, [p]{
-            p->runJavaScript("window.scrollTo(0, document.body.scrollHeight);");
-        }});
+        shortcuts.append({{Qt::Key_PageDown}, js("window.scrollBy(0, window.innerHeight / 2)")});
+        shortcuts.append({{Qt::Key_PageUp},   js("window.scrollBy(0, -window.innerHeight / 2)")});
 
-        shortcuts.append({SHORTCUT_ZOOMIN,
-                          [this]{ view.setZoomFactor(view.zoomFactor() + ZOOM_STEP); }});
-        shortcuts.append({SHORTCUT_ZOOMOUT,
-                          [this]{ view.setZoomFactor(view.zoomFactor() - ZOOM_STEP); }});
-        shortcuts.append({SHORTCUT_ZOOMRESET, [&]{ view.setZoomFactor(1.0); }});
+        shortcuts.append({SHORTCUT_TOP,    js("window.scrollTo(0, 0);")});
+        shortcuts.append({{Qt::Key_Home},  js("window.scrollTo(0, 0);")});
+        shortcuts.append({SHORTCUT_BOTTOM, js("window.scrollTo(0, document.body.scrollHeight);")});
+        shortcuts.append({{Qt::Key_End},   js("window.scrollTo(0, document.body.scrollHeight);")});
 
-        shortcuts.append({SHORTCUT_NEXT,
-                          [&]{ inSiteSearch(bar.text(), QWebEnginePage::FindFlags()); }});
-        shortcuts.append({SHORTCUT_PREV,
-                          [&]{ inSiteSearch(bar.text(), QWebEnginePage::FindBackward); }});
+        auto zoom = [&](float x){ return [this, x]{ view.setZoomFactor(view.zoomFactor() + x); }; };
+        shortcuts.append({SHORTCUT_ZOOMIN,  zoom(+ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMOUT, zoom(-ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMRESET, [this]{ view.setZoomFactor(1.0); }});
+
+        auto find = [&](QWebEnginePage::FindFlags f){ return [&]{ inSiteSearch(bar.text(), f); }; };
+        shortcuts.append({SHORTCUT_NEXT, find(QWebEnginePage::FindFlags())});
+        shortcuts.append({SHORTCUT_PREV, find(QWebEnginePage::FindBackward)});
     }
 
     void setupBar() {
@@ -345,18 +334,13 @@ private:
             setWindowTitle(url.isEmpty() ? view.title() : url.toDisplayString());
         });
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
-        connect(view.page(), &QWebEnginePage::fullScreenRequested,
-                this, &DobosTorta::toggleFullScreen);
+        connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::fullScreen);
 
         connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [this]{
             setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
         });
 
         setCentralWidget(&view);
-    }
-
-    void scroll(int x, int y) {
-        view.page()->runJavaScript(QString("window.scrollBy(%1, %2)").arg(x).arg(y));
     }
 
     void openBar(const QString &prefix, const QString &content) {
@@ -445,12 +429,12 @@ private slots:
     }
 
     void escapeBar() {
-        bar.setText("");
         setFocus(Qt::ShortcutFocusReason);
         bar.setVisible(false);
+        bar.setText("");
     }
 
-    void toggleFullScreen(QWebEngineFullScreenRequest r) {
+    void fullScreen(QWebEngineFullScreenRequest r){
         if (r.toggleOn())
             showFullScreen();
         else
@@ -481,12 +465,11 @@ int main(int argc, char **argv) {
 
     TortaDatabase db;
 
-    if (argc > 1) {
-        for (int i=1; i<argc; i++)
-            (new DobosTorta(db))->load(argv[i]);
-    } else {
+    if (argc == 1)
         (new DobosTorta(db))->load(HOMEPAGE);
-    }
+
+    for (int i=1; i<argc; i++)
+        (new DobosTorta(db))->load(argv[i]);
 
     return app.exec();
 }
