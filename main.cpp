@@ -304,7 +304,7 @@ private:
         shortcuts.append({SHORTCUT_ZOOMIN,     zoom(+ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMIN_ALT, zoom(+ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-ZOOM_STEP)});
-        shortcuts.append({SHORTCUT_ZOOMRESET, [this]{ view.setZoomFactor(1.0); }});
+        shortcuts.append({SHORTCUT_ZOOMRESET,  [this]{ view.setZoomFactor(1.0); }});
 
         auto f = [&](QWebEnginePage::FindFlags f){ return [&, f]{ inSiteSearch(bar.text(), f); }; };
         shortcuts.append({SHORTCUT_NEXT, f(QWebEnginePage::FindFlags())});
@@ -333,9 +333,13 @@ private:
     }
 
     void setupView() {
-        connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
         connect(&view, &QWebEngineView::titleChanged,
             [&](const QString &title){ setWindowTitle((incognito ? "incognito: " : "") + title); });
+        connect(&view, &QWebEngineView::urlChanged, [this](const QUrl &url){
+            updateFrameColor();
+            if (!incognito)
+                db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
+        });
         connect(view.page(), &QWebEnginePage::linkHovered, [this](const QUrl &url){
             setWindowTitle((incognito ? "incognito: " : "")
                            + (url.isEmpty() ? view.title() : url.toDisplayString()));
@@ -420,12 +424,6 @@ public:
     }
 
 private slots:
-    void urlChanged(const QUrl &url) {
-        updateFrameColor();
-        if (!incognito)
-            db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
-    }
-
     void toggleBar() {
         if (!bar.hasFocus())
             openBar("", view.url().toDisplayString());
