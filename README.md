@@ -48,3 +48,8 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 |Ctrl-[ or escape|Escape from bar and close. Only working when bar has focus.                  |
 |Ctrl-F          |Find next text. Only working when inputted in-site search query into bar.    |
 |Ctrl-P          |Find previous text. Only working when inputted in-site search query into bar.|
+
+#### Others
+|Key   |Description     |
+|:-----|:---------------|
+|Ctrl-N|Open new window.|

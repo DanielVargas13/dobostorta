@@ -52,6 +52,7 @@
 #define SHORTCUT_ZOOMRESET   {SHORTCUT_META + Qt::Key_0}
 #define SHORTCUT_NEXT        {SHORTCUT_META + Qt::Key_N}
 #define SHORTCUT_PREV        {SHORTCUT_META + Qt::Key_P}
+#define SHORTCUT_NEW_WINDOW  {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -310,6 +311,8 @@ private:
         auto find = [&](QWebEnginePage::FindFlags f){ return [&]{ inSiteSearch(bar.text(), f); }; };
         shortcuts.append({SHORTCUT_NEXT, find(QWebEnginePage::FindFlags())});
         shortcuts.append({SHORTCUT_PREV, find(QWebEnginePage::FindBackward)});
+
+        shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
     }
 
     void setupBar() {
