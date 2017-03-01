@@ -26,11 +26,6 @@
 #define SEARCH_ENDPOINT  "http://google.com/search"
 #define SEARCH_QUERY     "q"
 
-#define FRAME_WIDTH              2, 2, 2, 2
-#define HTTPS_FRAME_COLOR        "#00ff00"
-#define HTTPS_ERROR_FRAME_COLOR  "#ff0000"
-#define DEFAULT_FRAME_COLOR      "#808080"
-
 #define SHORTCUT_META  (Qt::CTRL)
 
 #define SHORTCUT_FORWARD        {SHORTCUT_META + Qt::Key_I}
@@ -347,10 +342,8 @@ private:
         });
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
         connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::fullScreen);
-
-        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError, [this]{
-            setStyleSheet("QMainWindow { background-color: " HTTPS_ERROR_FRAME_COLOR "; }");
-        });
+        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError,
+                [this]{ updateFrameColor(true); });
 
         setCentralWidget(&view);
     }
@@ -381,6 +374,18 @@ private:
             view.findText("");
     }
 
+    void updateFrameColor(bool error=false) {
+        if (view.url().scheme() != "https")
+            setStyleSheet(incognito ? "QMainWindow { background-color: #0000FF; }"
+                                    : "QMainWindow { background-color: #808080; }");
+        else if (!error)
+            setStyleSheet(incognito ? "QMainWindow { background-color: #00D0FF; }"
+                                    : "QMainWindow { background-color: #00ff00; }");
+        else
+            setStyleSheet(incognito ? "QMainWindow { background-color: #D000FF; }"
+                                    : "QMainWindow { background-color: #ff0000; }");
+    }
+
 public:
     DobosTorta(TortaDatabase &db, bool incognito=false)
             : bar(this, db), view(this, db, incognito), db(db), incognito(incognito) {
@@ -388,8 +393,8 @@ public:
         setupView();
         setupShortcuts();
 
-        setContentsMargins(FRAME_WIDTH);
-        setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
+        setContentsMargins(2, 2, 2, 2);
+        updateFrameColor();
 
         show();
     }
@@ -416,13 +421,9 @@ public:
 
 private slots:
     void urlChanged(const QUrl &url) {
+        updateFrameColor();
         if (!incognito)
             db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
-
-        if (url.scheme() == "https")
-            setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");
-        else
-            setStyleSheet("QMainWindow { background-color: " DEFAULT_FRAME_COLOR "; }");
     }
 
     void toggleBar() {
