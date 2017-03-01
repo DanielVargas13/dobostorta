@@ -306,9 +306,9 @@ private:
         shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMRESET, [this]{ view.setZoomFactor(1.0); }});
 
-        auto find = [&](QWebEnginePage::FindFlags f){ return [&]{ inSiteSearch(bar.text(), f); }; };
-        shortcuts.append({SHORTCUT_NEXT, find(QWebEnginePage::FindFlags())});
-        shortcuts.append({SHORTCUT_PREV, find(QWebEnginePage::FindBackward)});
+        auto f = [&](QWebEnginePage::FindFlags f){ return [&, f]{ inSiteSearch(bar.text(), f); }; };
+        shortcuts.append({SHORTCUT_NEXT, f(QWebEnginePage::FindFlags())});
+        shortcuts.append({SHORTCUT_PREV, f(QWebEnginePage::FindBackward)});
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
         shortcuts.append({SHORTCUT_NEW_INCOGNITO,
