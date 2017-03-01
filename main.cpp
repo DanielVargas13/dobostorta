@@ -33,26 +33,27 @@
 
 #define SHORTCUT_META  (Qt::CTRL)
 
-#define SHORTCUT_FORWARD     {SHORTCUT_META + Qt::Key_I}
-#define SHORTCUT_BACK        {SHORTCUT_META + Qt::Key_O}
-#define SHORTCUT_RELOAD      {SHORTCUT_META + Qt::Key_R}
-#define SHORTCUT_BAR         {SHORTCUT_META + Qt::Key_Colon}
-#define SHORTCUT_BAR_ALT     {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
-#define SHORTCUT_FIND        {SHORTCUT_META + Qt::Key_Slash}
-#define SHORTCUT_ESCAPE      {SHORTCUT_META + Qt::Key_BracketLeft}
-#define SHORTCUT_DOWN        {SHORTCUT_META + Qt::Key_J}
-#define SHORTCUT_UP          {SHORTCUT_META + Qt::Key_K}
-#define SHORTCUT_LEFT        {SHORTCUT_META + Qt::Key_H}
-#define SHORTCUT_RIGHT       {SHORTCUT_META + Qt::Key_L}
-#define SHORTCUT_TOP         {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
-#define SHORTCUT_BOTTOM      {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
-#define SHORTCUT_ZOOMIN      {SHORTCUT_META + Qt::Key_Plus}
-#define SHORTCUT_ZOOMIN_ALT  {SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus}
-#define SHORTCUT_ZOOMOUT     {SHORTCUT_META + Qt::Key_Minus}
-#define SHORTCUT_ZOOMRESET   {SHORTCUT_META + Qt::Key_0}
-#define SHORTCUT_NEXT        {SHORTCUT_META + Qt::Key_N}
-#define SHORTCUT_PREV        {SHORTCUT_META + Qt::Key_P}
-#define SHORTCUT_NEW_WINDOW  {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
+#define SHORTCUT_FORWARD        {SHORTCUT_META + Qt::Key_I}
+#define SHORTCUT_BACK           {SHORTCUT_META + Qt::Key_O}
+#define SHORTCUT_RELOAD         {SHORTCUT_META + Qt::Key_R}
+#define SHORTCUT_BAR            {SHORTCUT_META + Qt::Key_Colon}
+#define SHORTCUT_BAR_ALT        {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
+#define SHORTCUT_FIND           {SHORTCUT_META + Qt::Key_Slash}
+#define SHORTCUT_ESCAPE         {SHORTCUT_META + Qt::Key_BracketLeft}
+#define SHORTCUT_DOWN           {SHORTCUT_META + Qt::Key_J}
+#define SHORTCUT_UP             {SHORTCUT_META + Qt::Key_K}
+#define SHORTCUT_LEFT           {SHORTCUT_META + Qt::Key_H}
+#define SHORTCUT_RIGHT          {SHORTCUT_META + Qt::Key_L}
+#define SHORTCUT_TOP            {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
+#define SHORTCUT_BOTTOM         {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
+#define SHORTCUT_ZOOMIN         {SHORTCUT_META + Qt::Key_Plus}
+#define SHORTCUT_ZOOMIN_ALT     {SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus}
+#define SHORTCUT_ZOOMOUT        {SHORTCUT_META + Qt::Key_Minus}
+#define SHORTCUT_ZOOMRESET      {SHORTCUT_META + Qt::Key_0}
+#define SHORTCUT_NEXT           {SHORTCUT_META + Qt::Key_N}
+#define SHORTCUT_PREV           {SHORTCUT_META + Qt::Key_P}
+#define SHORTCUT_NEW_WINDOW     {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
+#define SHORTCUT_NEW_INCOGNITO  {SHORTCUT_META + Qt::SHIFT + Qt::Key_P}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
@@ -217,9 +218,7 @@ protected:
     }
 
 public:
-    TortaPage(QObject *parent) : QWebEnginePage(parent) {
-        profile()->setHttpUserAgent(USER_AGENT);
-    }
+    TortaPage(QWebEngineProfile *profile, QObject *parent) : QWebEnginePage(profile, parent) {}
 
     void triggerAction(WebAction action, bool checked=false) override {
         if (action == QWebEnginePage::DownloadImageToDisk
@@ -245,8 +244,11 @@ protected:
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
-    TortaView(QWidget *parent, TortaDatabase &db) : QWebEngineView(parent), db(db) {
-        setPage(new TortaPage(this));
+    TortaView(QWidget *parent, TortaDatabase &db, bool incognito) : QWebEngineView(parent), db(db) {
+        QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
+                                               : new QWebEngineProfile("Default", this);
+        profile->setHttpUserAgent(USER_AGENT);
+        setPage(new TortaPage(profile, this));
     }
 };
 
@@ -261,6 +263,7 @@ private:
     TortaView view;
     TortaDatabase &db;
     QList<QPair<const QKeySequence, std::function<void(void)>>> shortcuts;
+    const bool incognito;
 
 
     void keyPressEvent(QKeyEvent *e) override {
@@ -313,6 +316,8 @@ private:
         shortcuts.append({SHORTCUT_PREV, find(QWebEnginePage::FindBackward)});
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
+        shortcuts.append({SHORTCUT_NEW_INCOGNITO,
+                [this]{ (new DobosTorta(db, true))->load(HOMEPAGE); }});
     }
 
     void setupBar() {
@@ -333,10 +338,12 @@ private:
     }
 
     void setupView() {
-        connect(&view, &QWebEngineView::titleChanged, this, &QWidget::setWindowTitle);
         connect(&view, &QWebEngineView::urlChanged, this, &DobosTorta::urlChanged);
+        connect(&view, &QWebEngineView::titleChanged,
+            [&](const QString &title){ setWindowTitle((incognito ? "incognito: " : "") + title); });
         connect(view.page(), &QWebEnginePage::linkHovered, [this](const QUrl &url){
-            setWindowTitle(url.isEmpty() ? view.title() : url.toDisplayString());
+            setWindowTitle((incognito ? "incognito: " : "")
+                           + (url.isEmpty() ? view.title() : url.toDisplayString()));
         });
         connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
         connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::fullScreen);
@@ -356,7 +363,8 @@ private:
     }
 
     void webSearch(const QString &queryString) {
-        db.appendHistory("search", queryString);
+        if (!incognito)
+            db.appendHistory("search", queryString);
 
         QUrl url(SEARCH_ENDPOINT);
         QUrlQuery query;
@@ -374,7 +382,8 @@ private:
     }
 
 public:
-    DobosTorta(TortaDatabase &db) : bar(this, db), view(this, db), db(db) {
+    DobosTorta(TortaDatabase &db, bool incognito=false)
+            : bar(this, db), view(this, db, incognito), db(db), incognito(incognito) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -407,7 +416,8 @@ public:
 
 private slots:
     void urlChanged(const QUrl &url) {
-        db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
+        if (!incognito)
+            db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
 
         if (url.scheme() == "https")
             setStyleSheet("QMainWindow { background-color: " HTTPS_FRAME_COLOR "; }");

@@ -50,6 +50,7 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 |Ctrl-P          |Find previous text. Only working when inputted in-site search query into bar.|
 
 #### Others
-|Key   |Description     |
-|:-----|:---------------|
-|Ctrl-N|Open new window.|
+|Key   |Description               |
+|:-----|:-------------------------|
+|Ctrl-N|Open new window.          |
+|Ctrl-P|Open new incognito window.|
