@@ -125,7 +125,7 @@ public:
     }
 
     QStringList searchHistory(QString query) {
-        search.bindValue(0, "%%" + query.replace("%%", "\\%%") + "%%");
+        search.bindValue(0, "%" + query.replace("%", "\\%") + "%");
         search.exec();
         QStringList r;
         while (search.next())
@@ -134,8 +134,9 @@ public:
     }
 
     QString firstForwardMatch(QString query) {
-        forward.bindValue(0, query.replace("%%", "\\%%") + "%%");
-        forward.bindValue(1, query.replace("%%", "\\%%") + "%%");
+        query = query.replace("%", "\\%") + "%";
+        forward.bindValue(0, query);
+        forward.bindValue(1, query);
         forward.exec();
         if (!forward.next())
             return "";
