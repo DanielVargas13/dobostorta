@@ -14,6 +14,10 @@ $ make
 $ sudo make install
 ```
 
+`make install` will install two binaries that `dobostorta` and `torta-dl`.
+`dobostorta` is the main command of Dobostorta browser.
+And, `torta-dl` is a downloader command for `dobostorta`. `torta-dl` used by `dobostorta`.
+
 ## Uninstall
 You can uninstall binary with `sudo make uninstall`.
 And, remove data files (maybe saved on `~/.local/share/dobostorta`).

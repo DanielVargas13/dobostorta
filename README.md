@@ -1,4 +1,4 @@
-DobosTorta
+Dobostorta
 ==========
 
 The minimal browser.
