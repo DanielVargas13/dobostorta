@@ -463,8 +463,8 @@ private slots:
 
 QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
     auto window = new DobosTorta(db, static_cast<DobosTorta *>(parentWidget())->incognito);
-    if (type != QWebEnginePage::WebBrowserBackgroundTab)
-        window->setFocus();
+    if (type == QWebEnginePage::WebBrowserBackgroundTab)
+        parentWidget()->activateWindow();
     return &window->view;
 }
 
