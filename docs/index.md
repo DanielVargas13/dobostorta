@@ -18,7 +18,7 @@ $ sudo make install
 You can uninstall binary with `sudo make uninstall`.
 And, remove data files (maybe saved on `~/.local/share/dobostorta`).
 
-## Usae
+## How to use
 ### Shortcuts
 #### Scroll
 <table>
