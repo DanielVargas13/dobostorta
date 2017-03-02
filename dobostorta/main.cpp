@@ -264,13 +264,13 @@ private:
 
 
     void keyPressEvent(QKeyEvent *e) override {
-        static int oldKey = 0;
-        const int key = e->key() + e->modifiers();
+        static QKeySequence key;
+        const QKeySequence seq(key[0], e->key() + e->modifiers());
+        key = QKeySequence(e->key() + e->modifiers());
         for (const auto &sc: shortcuts) {
-            if (sc.first == QKeySequence(key) || sc.first == QKeySequence(oldKey, key))
+            if (sc.first == key || sc.first == seq)
                 return sc.second();
         }
-        oldKey = key;
         QMainWindow::keyPressEvent(e);
     }
 
