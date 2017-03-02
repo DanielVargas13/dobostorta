@@ -104,12 +104,13 @@ public:
         add.setForwardOnly(true);
 
         search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
-                          GROUP BY uri ORDER BY MAX(timestamp) DESC, COUNT(timestamp) DESC");
+                          GROUP BY uri ORDER BY COUNT(timestamp) DESC, MIN(timestamp)");
         search.setForwardOnly(true);
 
-        forward.prepare("SELECT scheme, address FROM history                          \
-                           WHERE (scheme = 'search' AND address LIKE ?)               \
-                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE ?)  \
+        forward.prepare("SELECT scheme, address FROM history                                       \
+                           WHERE (scheme = 'search' AND address LIKE ?)                            \
+                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE ?)               \
+                           GROUP BY scheme, address ORDER BY COUNT(timestamp) DESC, MIN(timestamp) \
                            LIMIT 1");
         forward.setForwardOnly(true);
     }
