@@ -1,9 +1,11 @@
-DobosTorta
-==========
+---
+title: Dobostorta browser
+---
 
-The minimal browser.
+The minimal browser, **Dobostorta**.
 
-## Install
+# How to install
+Now, Dobostorta don't distribute binary files. Please compile in your computer.
 ```
 $ git clone http://github.com/macrat/dobostorta.git
 $ cd dobostorta
@@ -12,13 +14,15 @@ $ make
 $ sudo make install
 ```
 
-Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
+## Uninstall
+You can uninstall binary with `sudo make uninstall`.
+And, remove data files (maybe saved on `~/.local/share/dobostorta`).
 
 ## Usae
 ### Shortcuts
 #### Scroll
 |Key                  |Description           |
-|:--------------------|:---------------------|
+|---------------------|----------------------|
 |Ctrl-k or up         |Scroll to up.         |
 |Ctrl-j or down       |Scroll to down.       |
 |Ctrl-h or left       |Scroll to left.       |
@@ -28,21 +32,21 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 
 #### Zoom
 |Key       |Description     |
-|:---------|:---------------|
+|----------|----------------|
 |Ctrl-Plus |Zoom in         |
 |Ctrl-Minus|Zoom out        |
 |Ctrl-0    |Reset zoom level|
 
 #### History
 |Key                |Description     |
-|:------------------|:---------------|
+|-------------------|----------------|
 |Ctrl-i or Alt-Right|Forward history.|
 |Ctrl-o or Alt-Left |Back history.   |
 |Ctrl-r             |Reload page.    |
 
 #### Bar
 |Key             |Description                                                                  |
-|:---------------|:----------------------------------------------------------------------------|
+|----------------|-----------------------------------------------------------------------------|
 |Ctrl-:          |Focus to bar and start edit url or web search.                               |
 |Ctrl-/          |Focus to bar and start in-site search.                                       |
 |Ctrl-[ or escape|Escape from bar and close. Only working when bar has focus.                  |
@@ -51,6 +55,6 @@ Please remove `/usr/local/bin/dobostorta` if you want uninstall DobosTorta.
 
 #### Others
 |Key   |Description               |
-|:-----|:-------------------------|
+|------|--------------------------|
 |Ctrl-N|Open new window.          |
 |Ctrl-P|Open new incognito window.|
