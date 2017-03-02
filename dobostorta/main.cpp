@@ -54,7 +54,7 @@
 #define SCROLL_STEP_Y  20
 #define ZOOM_STEP      0.1
 
-#define DOWNLOAD_COMMAND  "wget"
+#define DOWNLOAD_COMMAND  "torta-dl"
 
 
 enum QueryType {

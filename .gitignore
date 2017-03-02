@@ -1,6 +1,7 @@
 moc_predefs.h
 *.o
 *.moc
-dobostorta
+dobostorta/dobostorta
+torta-dl/torta-dl
 .qmake.stash
 Makefile
