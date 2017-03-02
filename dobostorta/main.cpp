@@ -25,6 +25,7 @@
 #define HOMEPAGE         "http://google.com"
 #define SEARCH_ENDPOINT  "http://google.com/search"
 #define SEARCH_QUERY     "q"
+#define DOWNLOAD_COMMAND  "torta-dl"
 
 #define SHORTCUT_META  (Qt::CTRL)
 
@@ -41,20 +42,18 @@
 #define SHORTCUT_RIGHT          {SHORTCUT_META + Qt::Key_L}
 #define SHORTCUT_TOP            {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
 #define SHORTCUT_BOTTOM         {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
+#define SHORTCUT_NEXT           {SHORTCUT_META + Qt::Key_N}
+#define SHORTCUT_PREV           {SHORTCUT_META + Qt::Key_P}
 #define SHORTCUT_ZOOMIN         {SHORTCUT_META + Qt::Key_Plus}
 #define SHORTCUT_ZOOMIN_ALT     {SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus}
 #define SHORTCUT_ZOOMOUT        {SHORTCUT_META + Qt::Key_Minus}
 #define SHORTCUT_ZOOMRESET      {SHORTCUT_META + Qt::Key_0}
-#define SHORTCUT_NEXT           {SHORTCUT_META + Qt::Key_N}
-#define SHORTCUT_PREV           {SHORTCUT_META + Qt::Key_P}
 #define SHORTCUT_NEW_WINDOW     {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
 #define SHORTCUT_NEW_INCOGNITO  {SHORTCUT_META + Qt::SHIFT + Qt::Key_P}
 
 #define SCROLL_STEP_X  20
 #define SCROLL_STEP_Y  20
 #define ZOOM_STEP      0.1
-
-#define DOWNLOAD_COMMAND  "torta-dl"
 
 
 enum QueryType {
@@ -302,15 +301,15 @@ private:
         shortcuts.append({SHORTCUT_BOTTOM, js("window.scrollTo(0, document.body.scrollHeight);")});
         shortcuts.append({{Qt::Key_End},   js("window.scrollTo(0, document.body.scrollHeight);")});
 
+        auto f = [&](QWebEnginePage::FindFlags f){ return [&, f]{ inSiteSearch(bar.text(), f); }; };
+        shortcuts.append({SHORTCUT_NEXT, f(QWebEnginePage::FindFlags())});
+        shortcuts.append({SHORTCUT_PREV, f(QWebEnginePage::FindBackward)});
+
         auto zoom = [&](float x){ return [this, x]{ view.setZoomFactor(view.zoomFactor() + x); }; };
         shortcuts.append({SHORTCUT_ZOOMIN,     zoom(+ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMIN_ALT, zoom(+ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-ZOOM_STEP)});
         shortcuts.append({SHORTCUT_ZOOMRESET,  [this]{ view.setZoomFactor(1.0); }});
-
-        auto f = [&](QWebEnginePage::FindFlags f){ return [&, f]{ inSiteSearch(bar.text(), f); }; };
-        shortcuts.append({SHORTCUT_NEXT, f(QWebEnginePage::FindFlags())});
-        shortcuts.append({SHORTCUT_PREV, f(QWebEnginePage::FindBackward)});
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
         shortcuts.append({SHORTCUT_NEW_INCOGNITO,
@@ -325,10 +324,8 @@ private:
             if (GuessQueryType(bar.text()) != InSiteSearch)
                 escapeBar();
         });
-        connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated,
-                this, &DobosTorta::escapeBar);
-        connect(new QShortcut({Qt::Key_Escape}, &bar), &QShortcut::activated,
-                this, &DobosTorta::escapeBar);
+        connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated, [&]{ escapeBar(); });
+        connect(new QShortcut({Qt::Key_Escape}, &bar), &QShortcut::activated, [&]{ escapeBar(); });
 
         bar.setVisible(false);
         setMenuWidget(&bar);
@@ -373,7 +370,7 @@ private:
         view.load(url);
     }
 
-    void inSiteSearch(QString query, QWebEnginePage::FindFlags flags=QWebEnginePage::FindFlags()) {
+    void inSiteSearch(QString query, QWebEnginePage::FindFlags flags={}) {
         if (!query.isEmpty() && GuessQueryType(query) == InSiteSearch)
             view.findText(query.remove(0, 5), flags);
         else
