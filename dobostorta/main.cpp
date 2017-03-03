@@ -256,7 +256,7 @@ private:
     TortaBar bar;
     TortaView view;
     TortaDatabase &db;
-    QList<QPair<const QKeySequence, std::function<void(void)>>> shortcuts;
+    QVector<QPair<const QKeySequence, const std::function<void(void)>>> shortcuts;
     const bool incognito;
 
 
