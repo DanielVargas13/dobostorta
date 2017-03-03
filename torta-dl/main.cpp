@@ -201,15 +201,21 @@ public:
         });
     }
 
-    void startDownload(const QUrl &url) {
+    bool startDownload(const QUrl &url) {
         const QString path(QFileDialog::getSaveFileName(this, tr("Save file"), url.fileName()));
         if (path != "")
             startDownload(url, path);
+        return path != "";
     }
 };
 
 
 int main(int argc, char **argv) {
+    if (argc == 1) {
+        qWarning("Dobostorta Downloader\n$ %s URL...", argv[0]);
+        return -1;
+    }
+
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
 
@@ -224,10 +230,17 @@ int main(int argc, char **argv) {
     }
 
     TortaDL win(handler);
-    win.show();
 
+    bool started = false;
     for (int i=1; i<argc; i++)
-        win.startDownload({argv[i]});
+        started = started || win.startDownload({argv[i]});
+
+    if (!started) {
+        win.close();
+        return 1;
+    }
+
+    win.show();
 
     return app.exec();
 }
