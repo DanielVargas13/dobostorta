@@ -250,8 +250,6 @@ public:
 
 
 class DobosTorta : public QMainWindow {
-Q_OBJECT
-
     friend class TortaView;
 
 private:
@@ -280,9 +278,24 @@ private:
         shortcuts.append({{Qt::ALT + Qt::Key_Left},  [this]{ view.back();    }});
         shortcuts.append({SHORTCUT_RELOAD,           [this]{ view.reload();  }});
 
-        shortcuts.append({SHORTCUT_BAR,     [this]{ toggleBar();  }});
-        shortcuts.append({SHORTCUT_BAR_ALT, [this]{ toggleBar();  }});
-        shortcuts.append({SHORTCUT_FIND,    [this]{ toggleFind(); }});
+        auto toggleBar = [this]{
+            if (!bar.hasFocus())
+                openBar("", view.url().toDisplayString());
+            else if (GuessQueryType(bar.text()) == InSiteSearch)
+                openBar("", bar.text().remove(0, 5));
+            else
+                escapeBar();
+        };
+        shortcuts.append({SHORTCUT_BAR,     toggleBar});
+        shortcuts.append({SHORTCUT_BAR_ALT, toggleBar});
+        shortcuts.append({SHORTCUT_FIND,    [this]{
+            if (!bar.hasFocus())
+                openBar("find:", "");
+            else if (GuessQueryType(bar.text()) != InSiteSearch)
+                openBar("find:", bar.text());
+            else
+                escapeBar();
+        }});
 
         QWebEnginePage *p = view.page();
         auto js = [&](const QString &script){ return [p, script]{ p->runJavaScript(script); }; };
@@ -320,7 +333,6 @@ private:
         connect(&bar, &QLineEdit::textChanged, [this]{ inSiteSearch(bar.text()); });
         connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
-
             if (GuessQueryType(bar.text()) != InSiteSearch)
                 escapeBar();
         });
@@ -332,6 +344,7 @@ private:
     }
 
     void setupView() {
+        TortaPage *page = static_cast<TortaPage *>(view.page());
         connect(&view, &QWebEngineView::titleChanged,
             [&](const QString &title){ setWindowTitle((incognito ? "incognito: " : "") + title); });
         connect(&view, &QWebEngineView::urlChanged, [this](const QUrl &url){
@@ -339,14 +352,23 @@ private:
             if (!incognito)
                 db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
         });
-        connect(view.page(), &QWebEnginePage::linkHovered, [this](const QUrl &url){
+        connect(page, &QWebEnginePage::linkHovered, [this](const QUrl &url){
             setWindowTitle((incognito ? "incognito: " : "")
                            + (url.isEmpty() ? view.title() : url.toDisplayString()));
         });
-        connect(view.page(), &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
-        connect(view.page(), &QWebEnginePage::fullScreenRequested, this, &DobosTorta::fullScreen);
-        connect(static_cast<TortaPage *>(view.page()), &TortaPage::sslError,
-                [this]{ updateFrameColor(true); });
+        connect(page, &QWebEnginePage::iconChanged, this, &QWidget::setWindowIcon);
+        connect(page, &QWebEnginePage::fullScreenRequested, [this](QWebEngineFullScreenRequest r){
+            if (r.toggleOn())
+                showFullScreen();
+            else
+                showNormal();
+
+            if (isFullScreen() == r.toggleOn())
+                r.accept();
+            else
+                r.reject();
+        });
+        connect(page, &TortaPage::sslError, [this]{ updateFrameColor(true); });
 
         setCentralWidget(&view);
     }
@@ -356,6 +378,12 @@ private:
         bar.setVisible(true);
         bar.setFocus(Qt::ShortcutFocusReason);
         bar.setSelection(prefix.length(), content.length());
+    }
+
+    void escapeBar() {
+        setFocus(Qt::ShortcutFocusReason);
+        bar.setVisible(false);
+        bar.setText("");
     }
 
     void webSearch(const QString &queryString) {
@@ -420,43 +448,6 @@ public:
             inSiteSearch(query);
             break;
         }
-    }
-
-private slots:
-    void toggleBar() {
-        if (!bar.hasFocus())
-            openBar("", view.url().toDisplayString());
-        else if (GuessQueryType(bar.text()) == InSiteSearch)
-            openBar("", bar.text().remove(0, 5));
-        else
-            escapeBar();
-    }
-
-    void toggleFind() {
-        if (!bar.hasFocus())
-            openBar("find:", "");
-        else if (GuessQueryType(bar.text()) != InSiteSearch)
-            openBar("find:", bar.text());
-        else
-            escapeBar();
-    }
-
-    void escapeBar() {
-        setFocus(Qt::ShortcutFocusReason);
-        bar.setVisible(false);
-        bar.setText("");
-    }
-
-    void fullScreen(QWebEngineFullScreenRequest r){
-        if (r.toggleOn())
-            showFullScreen();
-        else
-            showNormal();
-
-        if (isFullScreen() == r.toggleOn())
-            r.accept();
-        else
-            r.reject();
     }
 };
 
