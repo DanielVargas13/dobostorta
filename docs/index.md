@@ -98,3 +98,13 @@ You can move in the search results with Ctrl-N and Ctrl-P.
 <tr><td>Ctrl-N</td><td>Open new window.</td></tr>
 <tr><td>Ctrl-P</td><td>Open new incognito window.</td></tr>
 </table>
+
+# Development policy
+Dobostorta is a **minimal** browser.
+There is some development policy for keeping minimalicity.
+
+Source code of Dobostorta will keep shorter than 500 lines and shorter than 100 characters each lines.
+And, one command has just one source code (Now, there is two codes that for dobostorta and torta-dl).
+
+Dobostorta will almost follows programing style of QT.
+One exception is place of brackets. Dobostorta's source code don't change line before brackets. This is keeping short.
