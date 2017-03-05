@@ -38,6 +38,13 @@ Or, please give search keyword if you want web search something.
 $ dobostorta something
 ```
 
+Dobostorta will open local file if arguments are starts with `~/`, `./` or `/`.
+```
+$ dobostorta ./local-file
+$ dobostorta ~/file-of-home
+$ dobostorta /path/to/file
+```
+
 If passed some arguments, Dobostorta will open windows as many as arguments.
 
 ## The Bar
@@ -48,7 +55,7 @@ If inputed text are starts with URL scheme or has dot, Dobostorta will open that
 
 And, you can web search from bar.
 If inputed text isn't URL or starts with `search:`, Dobostorta will search that in Google web search.
-If you want to other search engine, please replace `SEARCH_ENDPOINT` and `SEARCH_QUERY` of source code.
+If you want to other search engine, please edit `DobosTorta::webSearch` of `dobostorta/main.cpp`.
 
 And and, you can search word from current page using bar.
 If inputed text starts with `find:`, Dobostorta will search current page.
