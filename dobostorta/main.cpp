@@ -1,6 +1,8 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QCompleter>
+#include <QDir>
+#include <QFileInfo>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
@@ -78,6 +80,14 @@ QueryType GuessQueryType(const QString &str) {
         return URLWithoutScheme;
     else
         return SearchWithoutScheme;
+}
+
+
+QString expandFilePath(const QString &path) {
+    if (path.startsWith("~/"))
+        return QFileInfo(QDir::home(), path.right(path.length() - 2)).absoluteFilePath();
+    else
+        return QFileInfo(QDir::current(), path).absoluteFilePath();
 }
 
 
@@ -196,6 +206,9 @@ private slots:
             list << "find:" + word << "http://" + word;
         else if (type == URLWithoutScheme)
             list << "search:" + word << "find:" + word;
+
+        if (word.startsWith("~/") || word.startsWith("/"))
+            list << "file://" + expandFilePath(word);
 
         list << db.searchHistory(word);
         static_cast<QStringListModel *>(completer.model())->setStringList(list);
@@ -472,8 +485,12 @@ int main(int argc, char **argv) {
     if (argc == 1)
         (new DobosTorta(db))->load(HOMEPAGE);
 
-    for (int i=1; i<argc; i++)
-        (new DobosTorta(db))->load(argv[i]);
+    for (auto arg: app.arguments().mid(1)) {
+        if (arg.startsWith("/") || arg.startsWith("~/") || arg.startsWith("./"))
+            (new DobosTorta(db))->load("file://" + expandFilePath(arg));
+        else
+            (new DobosTorta(db))->load(arg);
+    }
 
     return app.exec();
 }
