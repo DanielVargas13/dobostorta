@@ -23,14 +23,9 @@
 
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
                     "Chrome/55.0.0.0 Safari/537.36 DobosTorta/dev-" GIT_VERSION
-
 #define HOMEPAGE         "http://google.com"
-#define SEARCH_ENDPOINT  "http://google.com/search"
-#define SEARCH_QUERY     "q"
-#define DOWNLOAD_COMMAND  "torta-dl"
 
-#define SHORTCUT_META  (Qt::CTRL)
-
+#define SHORTCUT_META           (Qt::CTRL)
 #define SHORTCUT_FORWARD        {SHORTCUT_META + Qt::Key_I}
 #define SHORTCUT_BACK           {SHORTCUT_META + Qt::Key_O}
 #define SHORTCUT_RELOAD         {SHORTCUT_META + Qt::Key_R}
@@ -66,8 +61,7 @@ enum QueryType {
     InSiteSearch
 };
 
-
-QueryType GuessQueryType(const QString &str) {
+QueryType guessQueryType(const QString &str) {
     static const QRegExp hasScheme("^[a-zA-Z0-9]+://");
     static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
     if (str.startsWith("search:"))
@@ -159,11 +153,8 @@ public:
 
 
 class TortaBar : public QLineEdit {
-Q_OBJECT
-
 private:
     QCompleter completer;
-    TortaDatabase &db;
 
 protected:
     void keyPressEvent(QKeyEvent *e) override {
@@ -180,48 +171,45 @@ protected:
     }
 
 public:
-    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent), completer(this), db(db) {
+    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent), completer(this) {
         completer.setModel(new QStringListModel(&completer));
         completer.setCompletionMode(QCompleter::UnfilteredPopupCompletion);
         setCompleter(&completer);
-        connect(this, &QLineEdit::textEdited, this, &TortaBar::update);
-    }
 
-private slots:
-    void update(const QString &word) {
-        static QString before;
-        if (!word.isEmpty() && !before.startsWith(word)) {
-            auto match = db.firstForwardMatch(word);
-            if (!match.isEmpty() && match != word) {
-                setText(match);
-                setSelection(word.length(), match.length());
+        connect(this, &QLineEdit::textEdited, [this, &db](const QString &word){
+            static QString before;
+            if (!word.isEmpty() && !before.startsWith(word)) {
+                auto match = db.firstForwardMatch(word);
+                if (!match.isEmpty() && match != word) {
+                    setText(match);
+                    setSelection(word.length(), match.length());
+                }
             }
-        }
-        before = word;
+            before = word;
 
-        const QueryType type(GuessQueryType(word));
-        QStringList list;
+            QStringList list;
 
-        if (type == SearchWithoutScheme)
-            list << "find:" + word << "http://" + word;
-        else if (type == URLWithoutScheme)
-            list << "search:" + word << "find:" + word;
+            if (guessQueryType(word) == SearchWithoutScheme)
+                list << "find:" + word << "http://" + word;
+            else if (guessQueryType(word) == URLWithoutScheme)
+                list << "search:" + word << "find:" + word;
 
-        if (word.startsWith("~/") || word.startsWith("/"))
-            list << "file://" + expandFilePath(word);
+            if (word.startsWith("~/") || word.startsWith("/"))
+                list << "file://" + expandFilePath(word);
 
-        list << db.searchHistory(word);
-        static_cast<QStringListModel *>(completer.model())->setStringList(list);
+            list << db.searchHistory(word);
+            static_cast<QStringListModel *>(completer.model())->setStringList(list);
+        });
     }
 };
 
 
 class TortaPage : public QWebEnginePage {
-Q_OBJECT
+    Q_OBJECT
 
 protected:
     bool certificateError(const QWebEngineCertificateError &error) override {
-        qWarning() << "ssl error:" << error.errorDescription();
+        qWarning() << error.errorDescription();
         emit sslError();
         return true;
     }
@@ -229,15 +217,13 @@ protected:
 public:
     TortaPage(QWebEngineProfile *profile, QObject *parent) : QWebEnginePage(profile, parent) {}
 
-    void triggerAction(WebAction action, bool checked=false) override {
-        if (action == QWebEnginePage::DownloadImageToDisk
-        || action == QWebEnginePage::DownloadMediaToDisk) {
-            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().mediaUrl().toString()});
-        } else if (action == QWebEnginePage::DownloadLinkToDisk) {
-            QProcess::startDetached(DOWNLOAD_COMMAND, {contextMenuData().linkUrl().toString()});
-        } else {
-            QWebEnginePage::triggerAction(action, checked);
-        }
+    void triggerAction(WebAction wa, bool checked=false) override {
+        if (wa == QWebEnginePage::DownloadImageToDisk || wa == QWebEnginePage::DownloadMediaToDisk)
+            QProcess::startDetached("torta-dl", {contextMenuData().mediaUrl().toString()});
+        else if (wa == QWebEnginePage::DownloadLinkToDisk)
+            QProcess::startDetached("torta-dl", {contextMenuData().linkUrl().toString()});
+        else
+            QWebEnginePage::triggerAction(wa, checked);
     }
 
 signals:
@@ -246,14 +232,11 @@ signals:
 
 
 class TortaView : public QWebEngineView {
-private:
-    TortaDatabase &db;
-
 protected:
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
-    TortaView(QWidget *parent, TortaDatabase &db, bool incognito) : QWebEngineView(parent), db(db) {
+    TortaView(QWidget *parent, bool incognito) : QWebEngineView(parent) {
         QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
                                                : new QWebEngineProfile("Default", this);
         profile->setHttpUserAgent(USER_AGENT);
@@ -294,7 +277,7 @@ private:
         auto toggleBar = [this]{
             if (!bar.hasFocus())
                 openBar("", view.url().toDisplayString());
-            else if (GuessQueryType(bar.text()) == InSiteSearch)
+            else if (guessQueryType(bar.text()) == InSiteSearch)
                 openBar("", bar.text().remove(0, 5));
             else
                 escapeBar();
@@ -304,7 +287,7 @@ private:
         shortcuts.append({SHORTCUT_FIND,    [this]{
             if (!bar.hasFocus())
                 openBar("find:", "");
-            else if (GuessQueryType(bar.text()) != InSiteSearch)
+            else if (guessQueryType(bar.text()) != InSiteSearch)
                 openBar("find:", bar.text());
             else
                 escapeBar();
@@ -346,7 +329,7 @@ private:
         connect(&bar, &QLineEdit::textChanged, [this]{ inSiteSearch(bar.text()); });
         connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
-            if (GuessQueryType(bar.text()) != InSiteSearch)
+            if (guessQueryType(bar.text()) != InSiteSearch)
                 escapeBar();
         });
         connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated, [&]{ escapeBar(); });
@@ -403,16 +386,16 @@ private:
         if (!incognito)
             db.appendHistory("search", queryString);
 
-        QUrl url(SEARCH_ENDPOINT);
+        QUrl url("https://google.com/search");
         QUrlQuery query;
 
-        query.addQueryItem(SEARCH_QUERY, queryString);
+        query.addQueryItem("q", queryString);
         url.setQuery(query);
         view.load(url);
     }
 
     void inSiteSearch(QString query, QWebEnginePage::FindFlags flags={}) {
-        if (!query.isEmpty() && GuessQueryType(query) == InSiteSearch)
+        if (!query.isEmpty() && guessQueryType(query) == InSiteSearch)
             view.findText(query.remove(0, 5), flags);
         else
             view.findText("");
@@ -432,7 +415,7 @@ private:
 
 public:
     DobosTorta(TortaDatabase &db, bool incognito=false)
-            : bar(this, db), view(this, db, incognito), db(db), incognito(incognito) {
+            : bar(this, db), view(this, incognito), db(db), incognito(incognito) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -444,7 +427,7 @@ public:
     }
 
     void load(QString query) {
-        switch (GuessQueryType(query)) {
+        switch (guessQueryType(query)) {
         case URLWithScheme:
             view.load(query);
             break;
@@ -466,7 +449,8 @@ public:
 
 
 QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
-    auto window = new DobosTorta(db, static_cast<DobosTorta *>(parentWidget())->incognito);
+    auto window = new DobosTorta(static_cast<DobosTorta *>(parentWidget())->db,
+                                 static_cast<DobosTorta *>(parentWidget())->incognito);
     if (type == QWebEnginePage::WebBrowserBackgroundTab)
         parentWidget()->activateWindow();
     return &window->view;
