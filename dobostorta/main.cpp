@@ -189,7 +189,6 @@ public:
         connect(this, &QLineEdit::returnPressed, [this]{ suggest.hide(); });
         connect(suggest.selectionModel(), &QItemSelectionModel::currentChanged,
                 [&](const QModelIndex &c, const QModelIndex &_){ setText(c.data().toString()); });
-
         connect(this, &QLineEdit::textEdited, [this, &db](const QString &word){
             static QString before;
             if (!word.isEmpty() && !before.startsWith(word)) {
@@ -215,6 +214,7 @@ public:
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
             suggest.setFixedWidth(width());
+            suggest.setFixedHeight(4 + suggest.sizeHintForRow(0) * suggest.model()->rowCount());
             suggest.selectionModel()->clear();
             suggest.show();
         });
