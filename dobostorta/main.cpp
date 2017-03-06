@@ -19,6 +19,7 @@
 #include <QWebEngineView>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
+#include <QListView>
 
 
 #define HOMEPAGE    "http://google.com"
@@ -152,33 +153,47 @@ public:
 
 
 class TortaBar : public QLineEdit {
-    QCompleter completer;
+    QListView suggest;
 
 
     void keyPressEvent(QKeyEvent *e) override {
-        if (!completer.popup()->isVisible())
-            return QLineEdit::keyPressEvent(e);
-
         if (e->key() == Qt::Key_Escape
         || QKeySequence(e->key() + e->modifiers()) == QKeySequence(SHORTCUT_ESCAPE)) {
-            completer.popup()->setVisible(false);
+            suggest.hide();
             setVisible(false);
         } else {
             QLineEdit::keyPressEvent(e);
         }
     }
 
+    bool eventFilter(QObject *obj, QEvent *e) override {
+        if (obj == &suggest && e->type() == QEvent::MouseButtonPress) {
+            suggest.hide();
+            setFocus();
+            return true;
+        } else if (obj == &suggest && e->type() == QEvent::KeyPress) {
+            event(e);
+        }
+        return false;
+    }
+
 public:
-    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent), completer(this) {
-        completer.setModel(new QStringListModel(&completer));
-        completer.setCompletionMode(QCompleter::UnfilteredPopupCompletion);
-        setCompleter(&completer);
+    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent) {
+        suggest.setModel(new QStringListModel(&suggest));
+        suggest.setWindowFlags(Qt::Popup);
+        suggest.setFocusPolicy(Qt::NoFocus);
+        suggest.setFocusProxy(this);
+        suggest.installEventFilter(this);
+
+        connect(this, &QLineEdit::returnPressed, [this]{ suggest.hide(); });
+        connect(suggest.selectionModel(), &QItemSelectionModel::currentChanged,
+                [&](const QModelIndex &c, const QModelIndex &_){ setText(c.data().toString()); });
 
         connect(this, &QLineEdit::textEdited, [this, &db](const QString &word){
             static QString before;
             if (!word.isEmpty() && !before.startsWith(word)) {
                 auto match = db.firstForwardMatch(word);
-                if (!match.isEmpty() && match != word) {
+                if (!match.isEmpty()) {
                     setText(match);
                     setSelection(word.length(), match.length());
                 }
@@ -188,15 +203,19 @@ public:
             QStringList list;
 
             if (guessQueryType(word) == SearchWithoutScheme)
-                list << "find:" + word << "http://" + word;
+                list << "search:" + word << "http://" + word;
             else if (guessQueryType(word) == URLWithoutScheme)
-                list << "search:" + word << "find:" + word;
+                list << "http://" + word << "search:" + word;
 
             if (word.startsWith("~/") || word.startsWith("/"))
                 list << "file://" + expandFilePath(word);
 
-            list << db.searchHistory(word);
-            static_cast<QStringListModel *>(completer.model())->setStringList(list);
+            list << "find: " + word << db.searchHistory(word);
+            static_cast<QStringListModel *>(suggest.model())->setStringList(list);
+            suggest.move(mapToGlobal(QPoint(0, height())));
+            suggest.setFixedWidth(width());
+            suggest.selectionModel()->clear();
+            suggest.show();
         });
     }
 };
