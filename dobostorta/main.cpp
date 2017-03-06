@@ -173,7 +173,8 @@ class TortaBar : public QLineEdit {
             return true;
         } else if (obj == &suggest && e->type() == QEvent::KeyPress) {
             event(e);
-            return true;
+            const int key = static_cast<QKeyEvent *>(e)->key();
+            return key != Qt::Key_Up && key != Qt::Key_Down;
         }
         return false;
     }
