@@ -86,7 +86,6 @@ QString expandFilePath(const QString &path) {
 
 
 class TortaDatabase {
-private:
     QSqlDatabase db;
     QSqlQuery add;
     QSqlQuery search;
@@ -153,10 +152,9 @@ public:
 
 
 class TortaBar : public QLineEdit {
-private:
     QCompleter completer;
 
-protected:
+
     void keyPressEvent(QKeyEvent *e) override {
         if (!completer.popup()->isVisible())
             return QLineEdit::keyPressEvent(e);
@@ -207,7 +205,7 @@ public:
 class TortaPage : public QWebEnginePage {
     Q_OBJECT
 
-protected:
+
     bool certificateError(const QWebEngineCertificateError &error) override {
         qWarning() << error.errorDescription();
         emit sslError();
@@ -232,7 +230,6 @@ signals:
 
 
 class TortaView : public QWebEngineView {
-protected:
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
@@ -248,7 +245,6 @@ public:
 class DobosTorta : public QMainWindow {
     friend class TortaView;
 
-private:
     TortaBar bar;
     TortaView view;
     TortaDatabase &db;
