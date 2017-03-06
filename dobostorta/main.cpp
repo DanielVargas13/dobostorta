@@ -191,18 +191,18 @@ public:
         connect(suggest.selectionModel(), &QItemSelectionModel::currentChanged,
                 [&](const QModelIndex &c, const QModelIndex &_){ setText(c.data().toString()); });
         connect(this, &QLineEdit::textEdited, [this, &db](const QString &word){
+            if (word.isEmpty())
+                return suggest.hide();
+
             static QString before;
-            if (!word.isEmpty() && !before.startsWith(word)) {
-                auto match = db.firstForwardMatch(word);
-                if (!match.isEmpty()) {
-                    setText(match);
-                    setSelection(word.length(), match.length());
-                }
+            const QString match = db.firstForwardMatch(word);
+            if (!before.startsWith(word) && !match.isEmpty()) {
+                setText(match);
+                setSelection(word.length(), match.length());
             }
             before = word;
 
             QStringList list;
-
             if (guessQueryType(word) == SearchWithoutScheme)
                 list << "search:" + word << "http://" + word;
             else if (guessQueryType(word) == URLWithoutScheme)
