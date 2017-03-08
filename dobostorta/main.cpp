@@ -6,6 +6,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLineEdit>
+#include <QListView>
 #include <QMainWindow>
 #include <QProcess>
 #include <QShortcut>
@@ -19,7 +20,6 @@
 #include <QWebEngineView>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
-#include <QListView>
 
 
 #define HOMEPAGE    "http://google.com"
@@ -63,15 +63,13 @@ enum QueryType {
 };
 
 QueryType guessQueryType(const QString &str) {
-    static const QRegExp hasScheme("^[a-zA-Z0-9]+://");
-    static const QRegExp address("^[^/]+(\\.[^/]+|:[0-9]+)");
     if (str.startsWith("search:"))
         return SearchWithScheme;
     else if (str.startsWith("find:"))
         return InSiteSearch;
-    else if (hasScheme.indexIn(str) != -1)
+    else if (QRegExp("^[a-zA-Z0-9]+:").indexIn(str) != -1)
         return URLWithScheme;
-    else if (address.indexIn(str) != -1)
+    else if (QRegExp("^[^/]+(\\.[^/]+|:[0-9]+)").indexIn(str) != -1)
         return URLWithoutScheme;
     else
         return SearchWithoutScheme;
@@ -103,16 +101,16 @@ public:
                     scheme TEXT NOT NULL, address TEXT NOT NULL)");
         db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
-        add.prepare("INSERT INTO history (scheme, address) VALUES (?, ?)");
+        add.prepare("INSERT INTO history (scheme, address) VALUES (:scheme, :address)");
         add.setForwardOnly(true);
 
-        search.prepare("SELECT scheme || ':' || address AS uri FROM history WHERE address LIKE ?  \
+        search.prepare("SELECT scheme||':'||address AS uri FROM history WHERE address LIKE :query  \
                           GROUP BY uri ORDER BY COUNT(timestamp) DESC, MIN(timestamp)");
         search.setForwardOnly(true);
 
         forward.prepare("SELECT scheme, address FROM history                                       \
-                           WHERE (scheme = 'search' AND address LIKE ?)                            \
-                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE ?)               \
+                           WHERE (scheme = 'search' AND address LIKE :search_query)                \
+                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE :other_query)    \
                            GROUP BY scheme, address ORDER BY COUNT(timestamp) DESC, MIN(timestamp) \
                            LIMIT 1");
         forward.setForwardOnly(true);
@@ -123,28 +121,27 @@ public:
     }
 
     void appendHistory(const QString &scheme, const QString &address) {
-        add.bindValue(0, scheme);
-        add.bindValue(1, address);
+        add.bindValue("address", scheme);
+        add.bindValue("address", address);
         add.exec();
     }
 
     QStringList searchHistory(QString query) {
-        search.bindValue(0, "%" + query.replace("%", "\\%") + "%");
+        search.bindValue(":query", "%" + query.replace("%", "\\%") + "%");
         search.exec();
         QStringList r;
         while (search.next())
-            r << search.value(0).toString();
+            r << search.value("uri").toString();
         return r;
     }
 
     QString firstForwardMatch(QString query) {
-        query = query.replace("%", "\\%") + "%";
-        forward.bindValue(0, query);
-        forward.bindValue(1, query);
+        forward.bindValue(":search_query", query.replace("%", "\\%") + "%");
+        forward.bindValue(":other_query", forward.boundValue(":search_query").toString());
         forward.exec();
         if (!forward.next())
             return "";
-        else if (forward.value(0).toString() == "search")
+        else if (forward.value("scheme").toString() == "search")
             return forward.value(1).toString();
         else
             return forward.value(1).toString().right(forward.value(1).toString().length() - 2);
@@ -220,6 +217,19 @@ public:
             suggest.show();
         });
     }
+
+    void open(const QString &prefix, const QString &content) {
+        setText(prefix + content);
+        setVisible(true);
+        setFocus(Qt::ShortcutFocusReason);
+        setSelection(prefix.length(), content.length());
+    }
+
+    void close() {
+        static_cast<QWidget *>(parent())->setFocus(Qt::ShortcutFocusReason);
+        setVisible(false);
+        setText("");
+    }
 };
 
 
@@ -227,8 +237,7 @@ class TortaPage : public QWebEnginePage {
     Q_OBJECT
 
 
-    bool certificateError(const QWebEngineCertificateError &error) override {
-        qWarning() << error.errorDescription();
+    bool certificateError(const QWebEngineCertificateError &_) override {
         emit sslError();
         return true;
     }
@@ -293,24 +302,24 @@ class DobosTorta : public QMainWindow {
 
         auto toggleBar = [this]{
             if (!bar.hasFocus())
-                openBar("", view.url().toDisplayString());
+                bar.open("", view.url().toDisplayString());
             else if (guessQueryType(bar.text()) == InSiteSearch)
-                openBar("", bar.text().remove(0, 5));
+                bar.open("", bar.text().remove(0, 5));
             else
-                escapeBar();
+                bar.close();
         };
         shortcuts.append({SHORTCUT_BAR,     toggleBar});
         shortcuts.append({SHORTCUT_BAR_ALT, toggleBar});
         shortcuts.append({SHORTCUT_FIND,    [this]{
             if (!bar.hasFocus())
-                openBar("find:", "");
+                bar.open("find:", "");
             else if (guessQueryType(bar.text()) != InSiteSearch)
-                openBar("find:", bar.text());
+                bar.open("find:", bar.text());
             else
-                escapeBar();
+                bar.close();
         }});
 
-        QWebEnginePage *p = view.page();
+        QWebEnginePage * const p = view.page();
         auto js = [&](const QString &script){ return [p, script]{ p->runJavaScript(script); }; };
         auto sc = [&](int x, int y){ return js(QString("window.scrollBy(%1, %2)").arg(x).arg(y)); };
 
@@ -343,21 +352,21 @@ class DobosTorta : public QMainWindow {
     }
 
     void setupBar() {
-        connect(&bar, &QLineEdit::textChanged, [this]{ inSiteSearch(bar.text()); });
+        connect(&bar, &QLineEdit::textChanged,   [this]{ inSiteSearch(bar.text()); });
         connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
             if (guessQueryType(bar.text()) != InSiteSearch)
-                escapeBar();
+                bar.close();
         });
-        connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated, [&]{ escapeBar(); });
-        connect(new QShortcut({Qt::Key_Escape}, &bar), &QShortcut::activated, [&]{ escapeBar(); });
+        connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated, [&]{ bar.close(); });
+        connect(new QShortcut({Qt::Key_Escape}, &bar), &QShortcut::activated, [&]{ bar.close(); });
 
         bar.setVisible(false);
         setMenuWidget(&bar);
     }
 
     void setupView() {
-        TortaPage *page = static_cast<TortaPage *>(view.page());
+        TortaPage * const page = static_cast<TortaPage *>(view.page());
         connect(&view, &QWebEngineView::titleChanged,
             [&](const QString &title){ setWindowTitle((incognito ? "incognito: " : "") + title); });
         connect(&view, &QWebEngineView::urlChanged, [this](const QUrl &url){
@@ -386,28 +395,15 @@ class DobosTorta : public QMainWindow {
         setCentralWidget(&view);
     }
 
-    void openBar(const QString &prefix, const QString &content) {
-        bar.setText(prefix + content);
-        bar.setVisible(true);
-        bar.setFocus(Qt::ShortcutFocusReason);
-        bar.setSelection(prefix.length(), content.length());
-    }
-
-    void escapeBar() {
-        setFocus(Qt::ShortcutFocusReason);
-        bar.setVisible(false);
-        bar.setText("");
-    }
-
     void webSearch(const QString &queryString) {
         if (!incognito)
             db.appendHistory("search", queryString);
 
         QUrl url("https://google.com/search");
         QUrlQuery query;
-
         query.addQueryItem("q", queryString);
         url.setQuery(query);
+
         view.load(url);
     }
 
@@ -444,23 +440,17 @@ public:
     }
 
     void load(QString query) {
-        switch (guessQueryType(query)) {
-        case URLWithScheme:
+        const QueryType type(guessQueryType(query));
+        if (type == URLWithScheme)
             view.load(query);
-            break;
-        case URLWithoutScheme:
+        else if (type == URLWithoutScheme)
             view.load("http://" + query);
-            break;
-        case SearchWithScheme:
+        else if (type == SearchWithScheme)
             webSearch(query.remove(0, 7));
-            break;
-        case SearchWithoutScheme:
+        else if (type == SearchWithoutScheme)
             webSearch(query);
-            break;
-        case InSiteSearch:
+        else if (type == InSiteSearch)
             inSiteSearch(query);
-            break;
-        }
     }
 };
 
