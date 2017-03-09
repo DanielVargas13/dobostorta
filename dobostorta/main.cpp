@@ -198,8 +198,10 @@ public:
             suggest.show();
         });
 
-        if (incognito)
-            setStyleSheet("background-color: #666666; color: #ffffff;");
+        if (incognito) {
+            setStyleSheet("background-color: dimgray; color: white;");
+            suggest.setStyleSheet("background-color: dimgray; color: white;");
+        }
     }
 
     void open(const QString &prefix, const QString &content) {
