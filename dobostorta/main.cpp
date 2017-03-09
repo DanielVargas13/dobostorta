@@ -24,7 +24,7 @@
 
 #define HOMEPAGE    "http://google.com"
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
-                    "Chrome/55.0.0.0 Safari/537.36 DobosTorta/dev-" GIT_VERSION
+                    "Chrome/55.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
 
 #define SHORTCUT_META           (Qt::CTRL)
 #define SHORTCUT_FORWARD        {SHORTCUT_META + Qt::Key_I}
@@ -465,6 +465,8 @@ QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
 
 
 int main(int argc, char **argv) {
+    qInfo("Dobostorta " GIT_VERSION);
+
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
 
