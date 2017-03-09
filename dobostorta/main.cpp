@@ -86,7 +86,7 @@ public:
         add.setForwardOnly(true);
 
         search.prepare("SELECT scheme||':'||address AS uri FROM history WHERE address LIKE :query  \
-                          GROUP BY uri ORDER BY COUNT(timestamp) DESC, MIN(timestamp)");
+                          GROUP BY uri ORDER BY COUNT(timestamp) DESC, MIN(timestamp) LIMIT 500");
         search.setForwardOnly(true);
 
         forward.prepare("SELECT scheme, address FROM history                                       \
