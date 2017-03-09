@@ -158,7 +158,7 @@ class TortaBar : public QLineEdit {
     }
 
 public:
-    TortaBar(QWidget *parent, TortaDatabase &db) : QLineEdit(parent) {
+    TortaBar(QWidget *parent, TortaDatabase &db, bool incognito) : QLineEdit(parent) {
         suggest.setModel(new QStringListModel(&suggest));
         suggest.setWindowFlags(Qt::Popup);
         suggest.setFocusPolicy(Qt::NoFocus);
@@ -197,6 +197,9 @@ public:
             suggest.selectionModel()->clear();
             suggest.show();
         });
+
+        if (incognito)
+            setStyleSheet("background-color: #666666; color: #ffffff;");
     }
 
     void open(const QString &prefix, const QString &content) {
@@ -409,7 +412,7 @@ class DobosTorta : public QMainWindow {
 
 public:
     DobosTorta(TortaDatabase &db, bool incognito=false)
-            : bar(this, db), view(this, incognito), db(db), incognito(incognito) {
+            : bar(this, db, incognito), view(this, incognito), db(db), incognito(incognito) {
         setupBar();
         setupView();
         setupShortcuts();
