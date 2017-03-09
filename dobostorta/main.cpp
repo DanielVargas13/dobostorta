@@ -1,25 +1,6 @@
-#include <QAbstractItemView>
-#include <QApplication>
-#include <QCompleter>
-#include <QDir>
-#include <QFileInfo>
-#include <QKeyEvent>
-#include <QKeySequence>
-#include <QLineEdit>
-#include <QListView>
-#include <QMainWindow>
-#include <QProcess>
-#include <QShortcut>
-#include <QStandardPaths>
-#include <QStringListModel>
-#include <QUrlQuery>
-#include <QWebEngineContextMenuData>
-#include <QWebEngineFullScreenRequest>
-#include <QWebEngineProfile>
-#include <QWebEngineSettings>
-#include <QWebEngineView>
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
+#include <QtSql>
+#include <QtWebEngineWidgets>
+#include <QtWidgets>
 
 
 #define HOMEPAGE    "http://google.com"
