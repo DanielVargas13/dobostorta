@@ -255,7 +255,11 @@ public:
     }
 
     bool startDownload(const QUrl &url) {
-        const QString path(QFileDialog::getSaveFileName(this, tr("Save file"), url.fileName()));
+        const QString path(QFileDialog::getSaveFileName(
+            this,
+            tr("Save file"),
+            QFileInfo(QFileDialog().directory(), url.fileName()).absoluteFilePath()
+        ));
         if (path != "")
             startDownload(url, path);
         return path != "";
