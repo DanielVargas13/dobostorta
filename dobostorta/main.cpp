@@ -91,7 +91,7 @@ public:
 
         forward.prepare("SELECT scheme, address FROM history                                       \
                            WHERE (scheme = 'search' AND address LIKE :search_query)                \
-                              OR (scheme != 'search' AND LTRIM(address, '/') LIKE :other_query)    \
+                              OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :other_query)     \
                            GROUP BY scheme, address ORDER BY COUNT(timestamp) DESC, MIN(timestamp) \
                            LIMIT 1");
         forward.setForwardOnly(true);
