@@ -1,26 +1,5 @@
-#include <QApplication>
-#include <QColor>
-#include <QDataStream>
-#include <QElapsedTimer>
-#include <QErrorMessage>
-#include <QFile>
-#include <QFileDialog>
-#include <QHBoxLayout>
-#include <QIODevice>
-#include <QLabel>
-#include <QLocalServer>
-#include <QLocalSocket>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QPalette>
-#include <QProgressBar>
-#include <QPushButton>
-#include <QScrollArea>
-#include <QTimer>
-#include <QVBoxLayout>
-#include <QWidget>
-#include <QtMath>
+#include <QtNetwork>
+#include <QtWidgets>
 
 
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
