@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QtMath>
 
 
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
@@ -104,6 +105,25 @@ private:
         file.close();
     }
 
+    static QString bytesToKMG(int bytes) {
+        static const char* units[] = {"B", "KB", "MB", "GB", "TB", "PB", nullptr};
+        for (int i=0; units[i+1] != nullptr; i++) {
+            if (bytes < qPow(1024, i + 1)) {
+                if (qPow(1024, i + 1) / 10 < bytes)
+                    return QString("%1%2")
+                             .arg(static_cast<float>(bytes) / qPow(1024, i + 1), 0, 'f', 1)
+                             .arg(units[i + 1]);
+                else if (bytes < qPow(1024, i + 1) / 100)
+                    return QString("%1%2")
+                             .arg(static_cast<float>(bytes) / qPow(1024, i), 0, 'f', 1)
+                             .arg(units[i]);
+                else
+                    return QString("%1%2").arg(bytes / qPow(1024, i), 0, 'f', 0).arg(units[i]);
+            }
+        }
+        return QString("%1PB").arg(bytes / qPow(1024, 5), 0, 'f', 0);
+    }
+
 public:
     TortaDownload(QWidget *parent, QNetworkReply *reply, const QString &filePath)
             : QWidget(parent), reply(reply), layout(this), progress(this), button("cancel", this) {
@@ -139,9 +159,11 @@ public:
                 emit clear();
         });
 
+        progress.setFormat("%p% [%vB / %mB]");
         layout.addWidget(&progress);
 
         connect(reply, &QNetworkReply::downloadProgress, [this](qint64 received, qint64 total){
+            progress.setFormat("%p% [" + bytesToKMG(received) + " / " + bytesToKMG(total) + "]");
             progress.setRange(0, total);
             progress.setValue(received);
         });
@@ -150,10 +172,12 @@ public:
                 (new QErrorMessage(this))->showMessage(tr("Failed download: %1")
                                                        .arg(reply->errorString()));
             } else {
-                progress.setValue(progress.maximum());
                 saveTo(filePath);
             }
             button.setText("clear");
+
+            if (!reply->error())
+                progress.setFormat("done [" + bytesToKMG(progress.maximum()) + "]");
         });
     }
 
