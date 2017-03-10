@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QDataStream>
+#include <QElapsedTimer>
 #include <QErrorMessage>
 #include <QFile>
 #include <QFileDialog>
@@ -13,6 +14,7 @@
 #include <QNetworkRequest>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
@@ -91,6 +93,8 @@ private:
     QVBoxLayout layout;
     QProgressBar progress;
     QPushButton button;
+    QTimer intervalTimer;
+    QElapsedTimer elapsedTimer;
 
 
     void saveTo(const QString &path) {
@@ -163,7 +167,8 @@ public:
         layout.addWidget(&progress);
 
         connect(reply, &QNetworkReply::downloadProgress, [this](qint64 received, qint64 total){
-            progress.setFormat("%p% [" + bytesToKMG(received) + " / " + bytesToKMG(total) + "]");
+            updateProgressFormat();
+
             progress.setRange(0, total);
             progress.setValue(received);
         });
@@ -176,13 +181,39 @@ public:
             }
             button.setText("clear");
 
+            intervalTimer.stop();
             if (!reply->error())
                 progress.setFormat("done [" + bytesToKMG(progress.maximum()) + "]");
         });
+
+        intervalTimer.setSingleShot(false);
+        connect(&intervalTimer, &QTimer::timeout, this, &TortaDownload::updateProgressFormat);
+        intervalTimer.start(1000);
+        elapsedTimer.start();
     }
 
 signals:
     void clear();
+
+private slots:
+    void updateProgressFormat() {
+        const int remain = ((progress.maximum() * elapsedTimer.elapsed())
+                            / static_cast<float>(progress.value()) - elapsedTimer.elapsed()) / 1000;
+
+        QString remainStr;
+        if (remain > 0) {
+            if (remain < 60)
+                remainStr = QString("%1 sec").arg(remain);
+            else if (remain < 60 * 60)
+                remainStr = QString("%1' %2\"").arg(remain/60).arg(remain % 60, 2, 'd', 0, '0');
+            else
+                remainStr = QString("%1:%2'").arg(remain/60/60).arg(remain/60 % 60, 2, 'd', 0, '0');
+        }
+
+        progress.setFormat("%p% " + QString("[%1 / %2] %3").arg(bytesToKMG(progress.value()))
+                                                           .arg(bytesToKMG(progress.maximum()))
+                                                           .arg(remainStr));
+    }
 };
 
 
