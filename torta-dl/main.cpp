@@ -180,7 +180,6 @@ public:
                 setProgressBarColor(Qt::darkRed);
             }
         });
-
         intervalTimer.setSingleShot(false);
         connect(&intervalTimer, &QTimer::timeout, this, &TortaDownload::updateProgressFormat);
         intervalTimer.start(1000);
@@ -192,18 +191,19 @@ signals:
 
 private slots:
     void updateProgressFormat() {
-        const int remain = ((progress.maximum() * elapsedTimer.elapsed())
-                            / static_cast<float>(progress.value()) - elapsedTimer.elapsed()) / 1000;
+        const int remain = qMax(
+            0.0f,
+            ((progress.maximum() * elapsedTimer.elapsed()) / static_cast<float>(progress.value())
+            - elapsedTimer.elapsed()) / 1000
+        );
 
         QString remainStr;
-        if (remain > 0) {
-            if (remain < 60)
-                remainStr = QString("%1 sec").arg(remain);
-            else if (remain < 60 * 60)
-                remainStr = QString("%1' %2\"").arg(remain/60).arg(remain % 60, 2, 'd', 0, '0');
-            else
-                remainStr = QString("%1:%2'").arg(remain/60/60).arg(remain/60 % 60, 2, 'd', 0, '0');
-        }
+        if (remain < 60)
+            remainStr = QString("%1 sec").arg(remain);
+        else if (remain < 60 * 60)
+            remainStr = QString("%1' %2\"").arg(remain/60).arg(remain % 60, 2, 'd', 0, '0');
+        else
+            remainStr = QString("%1:%2'").arg(remain/60/60).arg(remain/60 % 60, 2, 'd', 0, '0');
 
         progress.setFormat("%p% " + QString("[%1 / %2] %3").arg(bytesToKMG(progress.value()))
                                                            .arg(bytesToKMG(progress.maximum()))
