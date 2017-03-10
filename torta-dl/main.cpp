@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QColor>
 #include <QDataStream>
 #include <QElapsedTimer>
 #include <QErrorMessage>
@@ -12,6 +13,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPalette>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QTimer>
@@ -128,6 +130,12 @@ private:
         return QString("%1PB").arg(bytes / qPow(1024, 5), 0, 'f', 0);
     }
 
+    void setProgressBarColor(const QColor &color) {
+        QPalette p;
+        p.setColor(QPalette::Highlight, color);
+        progress.setPalette(p);
+    }
+
 public:
     TortaDownload(QWidget *parent, QNetworkReply *reply, const QString &filePath)
             : QWidget(parent), reply(reply), layout(this), progress(this), button("cancel", this) {
@@ -164,6 +172,7 @@ public:
         });
 
         progress.setFormat("%p% [%vB / %mB]");
+        setProgressBarColor(Qt::darkGray);
         layout.addWidget(&progress);
 
         connect(reply, &QNetworkReply::downloadProgress, [this](qint64 received, qint64 total){
@@ -182,8 +191,14 @@ public:
             button.setText("clear");
 
             intervalTimer.stop();
-            if (!reply->error())
-                progress.setFormat("done [" + bytesToKMG(progress.maximum()) + "]");
+            if (!reply->error()) {
+                progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
+                setProgressBarColor(Qt::gray);
+            } else {
+                progress.setFormat(QString("%p% [%1] %2").arg(bytesToKMG(progress.maximum()))
+                                                         .arg(reply->errorString()));
+                setProgressBarColor(Qt::darkRed);
+            }
         });
 
         intervalTimer.setSingleShot(false);
