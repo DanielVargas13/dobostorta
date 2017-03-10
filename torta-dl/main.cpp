@@ -16,6 +16,7 @@
 #include <QPalette>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -232,7 +233,7 @@ private slots:
 };
 
 
-class TortaDL : public QWidget {
+class TortaDL : public QScrollArea {
 Q_OBJECT
 
 private:
@@ -251,7 +252,10 @@ public:
         setWindowTitle("Dobostorta downloader");
 
         layout.setAlignment(Qt::AlignTop);
-        setLayout(&layout);
+        auto listArea = new QWidget(this);
+        listArea->setLayout(&layout);
+        setWidget(listArea);
+        setWidgetResizable(true);
 
         connect(handler, &TortaRequestHandler::receivedRequest,
                 [this](const QUrl &url){ startDownload(url); });
@@ -261,7 +265,7 @@ public:
         QNetworkRequest request(url);
         request.setRawHeader("User-Agent", USER_AGENT);
 
-        auto dl = new TortaDownload(this, manager.get(request), fname);
+        auto dl = new TortaDownload(widget(), manager.get(request), fname);
 
         layout.addWidget(dl);
 
