@@ -102,8 +102,8 @@ public:
     }
 
     void appendHistory(const QString &scheme, const QString &address) {
-        add.bindValue("address", scheme);
-        add.bindValue("address", address);
+        add.bindValue(":scheme", scheme);
+        add.bindValue(":address", address);
         add.exec();
     }
 
