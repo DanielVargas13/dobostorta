@@ -255,10 +255,12 @@ public:
     }
 
     bool startDownload(const QUrl &url) {
+        const QString filter(QMimeDatabase().mimeTypeForFile(url.fileName()).filterString());
         const QString path(QFileDialog::getSaveFileName(
             this,
             tr("Save file"),
-            QFileInfo(QFileDialog().directory(), url.fileName()).absoluteFilePath()
+            QFileInfo(QFileDialog().directory(), url.fileName()).absoluteFilePath(),
+            filter + tr(";; All files (*)")
         ));
         if (path != "")
             startDownload(url, path);
