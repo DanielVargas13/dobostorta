@@ -82,8 +82,13 @@ private:
     void saveTo(const QString &path) {
         QFile file(path);
         if (!file.open(QIODevice::WriteOnly)) {
-            (new QErrorMessage(this))->showMessage(tr("Failed open %1: %2")
-                                                   .arg(path).arg(file.errorString()));
+            QMessageBox message(QMessageBox::Critical,
+                                reply->url().toString(),
+                                tr("Failed create %1\n%2").arg(path, file.errorString()),
+                                QMessageBox::Retry | QMessageBox::Abort,
+                                this);
+            if (message.exec() == QMessageBox::Retry)
+                saveTo(path);
             return;
         }
 
@@ -163,8 +168,13 @@ public:
         });
         connect(reply, &QNetworkReply::finished, [this, filePath, reply]{
             if (reply->error() && reply->error() != QNetworkReply::OperationCanceledError) {
-                (new QErrorMessage(this))->showMessage(tr("Failed download: %1")
-                                                       .arg(reply->errorString()));
+                QMessageBox message(QMessageBox::Critical,
+                                    reply->url().toString(),
+                                    tr("Failed download\n%1").arg(reply->errorString()),
+                                    QMessageBox::Retry | QMessageBox::Abort,
+                                    this);
+                if (message.exec() == QMessageBox::Retry)
+                    emit retry();
             } else {
                 saveTo(filePath);
             }
@@ -188,6 +198,7 @@ public:
 
 signals:
     void clear();
+    void retry();
 
 private slots:
     void updateProgressFormat() {
@@ -248,6 +259,7 @@ public:
 
         layout.addWidget(dl);
 
+        connect(dl, &TortaDownload::retry, [this, url, fname]{ startDownload(url, fname); });
         connect(dl, &TortaDownload::clear, [this, dl]{
             layout.removeWidget(dl);
             delete dl;
