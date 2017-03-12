@@ -140,7 +140,7 @@ class TortaDownload : public QWidget {
         if (!reply->error()) {
             progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
             setProgressBarColor(Qt::gray);
-            actionButton.hide();
+            actionButton.setText("open");
         } else {
             progress.setFormat(QString("%p% [%1] %2").arg(bytesToKMG(progress.maximum()))
                                                      .arg(reply->errorString()));
@@ -179,11 +179,13 @@ public:
         horizontal->addWidget(&actionButton);
         horizontal->addWidget(&clearButton);
         clearButton.hide();
-        connect(&actionButton, &QPushButton::clicked, [this, reply]{
+        connect(&actionButton, &QPushButton::clicked, [this, reply, filePath]{
             if (reply->isRunning())
+                reply->abort();
+			else if (reply->error())
                 emit retry();
             else
-                reply->abort();
+				QDesktopServices::openUrl(QUrl("file://" + filePath));
         });
         connect(&clearButton,  &QPushButton::clicked, [this]{ emit clear(); });
 
