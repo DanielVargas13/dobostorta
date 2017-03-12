@@ -9,9 +9,9 @@
 
 
 class TortaRequestHandler : public QLocalServer {
-Q_OBJECT
+    Q_OBJECT
 
-private:
+
     TortaRequestHandler() {
         listen(CONNECTION_NAME);
         connect(this, &QLocalServer::newConnection, this, &TortaRequestHandler::newConnection);
@@ -68,9 +68,9 @@ signals:
 
 
 class TortaDownload : public QWidget {
-Q_OBJECT
+    Q_OBJECT
 
-private:
+
     QNetworkReply * const reply;
     QVBoxLayout layout;
     QProgressBar progress;
@@ -121,6 +121,31 @@ private:
         progress.setPalette(p);
     }
 
+    void finished(const QString &filePath) {
+        if (reply->error() && reply->error() != QNetworkReply::OperationCanceledError) {
+            QMessageBox message(QMessageBox::Critical,
+                                reply->url().toString(),
+                                tr("Failed download\n%1").arg(reply->errorString()),
+                                QMessageBox::Retry | QMessageBox::Abort,
+                                this);
+            if (message.exec() == QMessageBox::Retry)
+                emit retry();
+        } else {
+            saveTo(filePath);
+        }
+        button.setText("clear");
+
+        intervalTimer.stop();
+        if (!reply->error()) {
+            progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
+            setProgressBarColor(Qt::gray);
+        } else {
+            progress.setFormat(QString("%p% [%1] %2").arg(bytesToKMG(progress.maximum()))
+                                                     .arg(reply->errorString()));
+            setProgressBarColor(Qt::darkRed);
+        }
+    }
+
 public:
     TortaDownload(QWidget *parent, QNetworkReply *reply, const QString &filePath)
             : QWidget(parent), reply(reply), layout(this), progress(this), button("cancel", this) {
@@ -143,8 +168,7 @@ public:
         fname->setStyleSheet("font-weight: bold;");
         path->addWidget(fname);
 
-        auto url = new QLabel(QString("<a href=\"%1\">%1</a>").arg(reply->url().toString()),
-                              this);
+        auto url = new QLabel(QString("<a href=\"%1\">%1</a>").arg(reply->url().toString()), this);
         url->setOpenExternalLinks(true);
         left->addWidget(url);
 
@@ -166,30 +190,7 @@ public:
             progress.setRange(0, total);
             progress.setValue(received);
         });
-        connect(reply, &QNetworkReply::finished, [this, filePath, reply]{
-            if (reply->error() && reply->error() != QNetworkReply::OperationCanceledError) {
-                QMessageBox message(QMessageBox::Critical,
-                                    reply->url().toString(),
-                                    tr("Failed download\n%1").arg(reply->errorString()),
-                                    QMessageBox::Retry | QMessageBox::Abort,
-                                    this);
-                if (message.exec() == QMessageBox::Retry)
-                    emit retry();
-            } else {
-                saveTo(filePath);
-            }
-            button.setText("clear");
-
-            intervalTimer.stop();
-            if (!reply->error()) {
-                progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
-                setProgressBarColor(Qt::gray);
-            } else {
-                progress.setFormat(QString("%p% [%1] %2").arg(bytesToKMG(progress.maximum()))
-                                                         .arg(reply->errorString()));
-                setProgressBarColor(Qt::darkRed);
-            }
-        });
+        connect(reply, &QNetworkReply::finished, [this, filePath]{ finished(filePath); });
         intervalTimer.setSingleShot(false);
         connect(&intervalTimer, &QTimer::timeout, this, &TortaDownload::updateProgressFormat);
         intervalTimer.start(1000);
@@ -224,15 +225,15 @@ private slots:
 
 
 class TortaDL : public QScrollArea {
-Q_OBJECT
+    Q_OBJECT
 
-private:
+
     QVBoxLayout layout;
     QNetworkAccessManager manager;
-    TortaRequestHandler *handler;
+    TortaRequestHandler * const handler;
 
 protected:
-    void closeEvent(QCloseEvent *e) {
+    void closeEvent(QCloseEvent *e) override {
         handler->close();
         QWidget::closeEvent(e);
     }
