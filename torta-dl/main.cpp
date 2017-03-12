@@ -74,7 +74,8 @@ class TortaDownload : public QWidget {
     QNetworkReply * const reply;
     QVBoxLayout layout;
     QProgressBar progress;
-    QPushButton button;
+    QPushButton actionButton;
+    QPushButton clearButton;
     QTimer intervalTimer;
     QElapsedTimer elapsedTimer;
 
@@ -133,22 +134,25 @@ class TortaDownload : public QWidget {
         } else {
             saveTo(filePath);
         }
-        button.setText("clear");
+        clearButton.show();
 
         intervalTimer.stop();
         if (!reply->error()) {
             progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
             setProgressBarColor(Qt::gray);
+            actionButton.hide();
         } else {
             progress.setFormat(QString("%p% [%1] %2").arg(bytesToKMG(progress.maximum()))
                                                      .arg(reply->errorString()));
             setProgressBarColor(Qt::darkRed);
+            actionButton.setText("retry");
         }
     }
 
 public:
     TortaDownload(QWidget *parent, QNetworkReply *reply, const QString &filePath)
-            : QWidget(parent), reply(reply), layout(this), progress(this), button("cancel", this) {
+            : QWidget(parent), reply(reply), layout(this), progress(this),
+              actionButton("cancel", this), clearButton("clear", this) {
         setLayout(&layout);
 
         auto horizontal = new QHBoxLayout;
@@ -172,13 +176,16 @@ public:
         url->setOpenExternalLinks(true);
         left->addWidget(url);
 
-        horizontal->addWidget(&button);
-        connect(&button, &QPushButton::clicked, [this, reply]{
+        horizontal->addWidget(&actionButton);
+        horizontal->addWidget(&clearButton);
+        clearButton.hide();
+        connect(&actionButton, &QPushButton::clicked, [this, reply]{
             if (reply->isRunning())
-                reply->abort();
+                emit retry();
             else
-                emit clear();
+                reply->abort();
         });
+        connect(&clearButton,  &QPushButton::clicked, [this]{ emit clear(); });
 
         progress.setFormat("%p% [%vB / %mB]");
         setProgressBarColor(Qt::darkGray);
