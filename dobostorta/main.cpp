@@ -192,8 +192,8 @@ public:
             list << "find: " + word << db.searchHistory(word);
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
-            suggest.resize(width(), qMin(parent->height() - height(),
-                                      4 + suggest.sizeHintForRow(0) * suggest.model()->rowCount()));
+            suggest.resize(width(),
+                           5 + suggest.sizeHintForRow(0) * qMin(20, suggest.model()->rowCount()));
             suggest.selectionModel()->clear();
             suggest.show();
         });
