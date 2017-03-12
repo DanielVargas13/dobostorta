@@ -48,10 +48,10 @@ QueryType guessQueryType(const QString &str) {
         return SearchWithScheme;
     else if (str.startsWith("find:"))
         return InSiteSearch;
-    else if (QRegExp("^[a-zA-Z0-9]+:").indexIn(str) != -1)
-        return URLWithScheme;
     else if (QRegExp("^[^/]+(\\.[^/]+|:[0-9]+)").indexIn(str) != -1)
         return URLWithoutScheme;
+    else if (QRegExp("^[a-zA-Z0-9]+:.+").indexIn(str) != -1)
+        return URLWithScheme;
     else
         return SearchWithoutScheme;
 }
