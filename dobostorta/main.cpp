@@ -153,9 +153,17 @@ class TortaBar : public QLineEdit {
             setFocus();
             return true;
         } else if (obj == &suggest && e->type() == QEvent::KeyPress) {
-            event(e);
-            const int key = static_cast<QKeyEvent *>(e)->key();
-            return key != Qt::Key_Up && key != Qt::Key_Down;
+            auto sel = suggest.selectionModel();
+            const auto keyEv = static_cast<QKeyEvent *>(e);
+            if (QKeySequence(keyEv->key() + keyEv->modifiers()) == QKeySequence(SHORTCUT_NEXT))
+                sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() + 1, 0),
+                                     QItemSelectionModel::ClearAndSelect);
+            else if (QKeySequence(keyEv->key() + keyEv->modifiers()) == QKeySequence(SHORTCUT_PREV))
+                sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() - 1, 0),
+                                     QItemSelectionModel::ClearAndSelect);
+            else
+                event(e);
+            return keyEv->key() != Qt::Key_Up && keyEv->key() != Qt::Key_Down;
         }
         return false;
     }

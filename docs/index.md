@@ -95,8 +95,10 @@ You can move in the search results with Ctrl-N and Ctrl-P.
 <tr><td>Ctrl-:</td><td>Focus to bar and start edit url or web search.</td></tr>
 <tr><td>Ctrl-/</td><td>Focus to bar and start in-site search.</td></tr>
 <tr><td>Ctrl-[ or escape</td><td>Escape from bar and close. Only working when bar has focus.</td></tr>
-<tr><td>Ctrl-F</td><td>Find next text. Only working when inputted in-site search query into bar.</td></tr>
-<tr><td>Ctrl-P</td><td>Find previous text. Only working when inputted in-site search query into bar.</td></tr>
+<tr><td>Ctrl-n</td><td>Find next text. Only working when inputted in-site search query into bar, and bar has no focus.</td></tr>
+<tr><td>Ctrl-p</td><td>Find previous text. Only working when inputted in-site search query into bar, and bar has no focus.</td></tr>
+<tr><td>Ctrl-n</td><td>Select next suggestion. Only working when bar has focus.</td></tr>
+<tr><td>Ctrl-p</td><td>Select previous suggestion. Only working when bar has focus.</td></tr>
 </table>
 
 ### Others
