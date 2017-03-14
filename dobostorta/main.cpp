@@ -130,6 +130,9 @@ public:
 };
 
 
+class DobosTorta;
+
+
 class TortaBar : public QLineEdit {
     QListView suggest;
 
@@ -158,7 +161,8 @@ class TortaBar : public QLineEdit {
     }
 
 public:
-    TortaBar(QWidget *parent, TortaDatabase &db, bool incognito) : QLineEdit(parent) {
+    TortaBar(DobosTorta *parent, TortaDatabase &db, bool incognito)
+            : QLineEdit(reinterpret_cast<QWidget *>(parent)) {
         suggest.setModel(new QStringListModel(&suggest));
         suggest.setWindowFlags(Qt::Popup);
         suggest.setFocusPolicy(Qt::NoFocus);
@@ -211,11 +215,7 @@ public:
         setSelection(prefix.length(), content.length());
     }
 
-    void close() {
-        static_cast<QWidget *>(parent())->setFocus(Qt::ShortcutFocusReason);
-        setVisible(false);
-        setText("");
-    }
+    void close();
 };
 
 
@@ -249,7 +249,8 @@ class TortaView : public QWebEngineView {
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
-    TortaView(QWidget *parent, bool incognito) : QWebEngineView(parent) {
+    TortaView(DobosTorta *parent, bool incognito)
+            : QWebEngineView(reinterpret_cast<QWidget *>(parent)) {
         QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
                                                : new QWebEngineProfile("Default", this);
         profile->setHttpUserAgent(USER_AGENT);
@@ -259,6 +260,7 @@ public:
 
 
 class DobosTorta : public QMainWindow {
+    friend class TortaBar;
     friend class TortaView;
 
     TortaBar bar;
@@ -445,6 +447,13 @@ public:
             inSiteSearch(query);
     }
 };
+
+
+void TortaBar::close() {
+    static_cast<DobosTorta *>(parent())->view.setFocus(Qt::ShortcutFocusReason);
+    setVisible(false);
+    setText("");
+}
 
 
 QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
