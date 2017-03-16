@@ -220,6 +220,7 @@ public:
     }
 
     void open(const QString &prefix, const QString &content) {
+        setFixedWidth(parentWidget()->width() - 4);
         setText(prefix + content);
         setVisible(true);
         setFocus(Qt::ShortcutFocusReason);
