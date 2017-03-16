@@ -228,8 +228,7 @@ public:
 
 
 class TortaPage : public QWebEnginePage {
-    Q_OBJECT
-
+Q_OBJECT
 
     bool certificateError(const QWebEngineCertificateError &_) override {
         emit sslError();
@@ -315,8 +314,7 @@ class DobosTorta : public QMainWindow {
                 bar.close();
         }});
 
-        QWebEnginePage * const p = view.page();
-        auto js = [&](const QString &script){ return [p, script]{ p->runJavaScript(script); }; };
+        auto js = [&](const QString &s){ return [this, s]{ view.page()->runJavaScript(s); }; };
         auto sc = [&](int x, int y){ return js(QString("window.scrollBy(%1, %2)").arg(x).arg(y)); };
 
         shortcuts.append({SHORTCUT_DOWN,  sc(0, SCROLL_STEP_Y)});
@@ -496,6 +494,5 @@ int main(int argc, char **argv) {
 
     return app.exec();
 }
-
 
 #include "main.moc"
