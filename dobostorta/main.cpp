@@ -139,8 +139,7 @@ class TortaBar : public QLineEdit {
     void keyPressEvent(QKeyEvent *e) override {
         if (e->key() == Qt::Key_Escape
         || QKeySequence(e->key() + e->modifiers()) == QKeySequence(SHORTCUT_ESCAPE)) {
-            suggest.hide();
-            setVisible(false);
+            close();
         } else {
             QLineEdit::keyPressEvent(e);
         }
@@ -216,6 +215,8 @@ public:
             setStyleSheet("background-color: dimgray; color: white;");
             suggest.setStyleSheet("background-color: dimgray; color: white;");
         }
+
+        setVisible(false);
     }
 
     void open(const QString &prefix, const QString &content) {
@@ -354,10 +355,6 @@ class DobosTorta : public QMainWindow {
             if (guessQueryType(bar.text()) != InSiteSearch)
                 bar.close();
         });
-        connect(new QShortcut(SHORTCUT_ESCAPE, &bar),  &QShortcut::activated, [&]{ bar.close(); });
-        connect(new QShortcut({Qt::Key_Escape}, &bar), &QShortcut::activated, [&]{ bar.close(); });
-
-        bar.setVisible(false);
         setMenuWidget(&bar);
     }
 
@@ -459,6 +456,7 @@ public:
 
 void TortaBar::close() {
     static_cast<DobosTorta *>(parent())->view.setFocus(Qt::ShortcutFocusReason);
+    suggest.hide();
     setVisible(false);
     setText("");
 }
