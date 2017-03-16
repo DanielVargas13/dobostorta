@@ -264,6 +264,7 @@ public:
         QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
                                                : new QWebEngineProfile("Default", this);
         profile->setHttpUserAgent(USER_AGENT);
+        profile->setHttpAcceptLanguage(QLocale().bcp47Name());
         setPage(new TortaPage(profile, this));
     }
 };
