@@ -163,6 +163,9 @@ class TortaBar : public QLineEdit {
             else
                 event(e);
             return keyEv->key() != Qt::Key_Up && keyEv->key() != Qt::Key_Down;
+        } else if (e->type() == QEvent::InputMethod || e->type() == QEvent::InputMethodQuery) {
+            event(e);
+            return true;
         }
         return false;
     }
