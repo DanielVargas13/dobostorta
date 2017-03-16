@@ -86,14 +86,13 @@ public:
         add.setForwardOnly(true);
 
         search.prepare("SELECT scheme||':'||address AS uri FROM history WHERE address LIKE :query  \
-                          GROUP BY uri ORDER BY COUNT(timestamp) DESC, MIN(timestamp) LIMIT 500");
+                       GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC LIMIT 500");
         search.setForwardOnly(true);
 
-        forward.prepare("SELECT scheme, address FROM history                                       \
-                           WHERE (scheme = 'search' AND address LIKE :search_query)                \
-                              OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :other_query)     \
-                           GROUP BY scheme, address ORDER BY COUNT(timestamp) DESC, MIN(timestamp) \
-                           LIMIT 1");
+        forward.prepare("SELECT scheme, address, scheme||':'||address AS uri FROM history          \
+                        WHERE (scheme = 'search' AND address LIKE :search_query)                   \
+                           OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :other_query)        \
+                        GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC  LIMIT 1");
         forward.setForwardOnly(true);
     }
 
