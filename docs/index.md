@@ -47,6 +47,14 @@ $ dobostorta /path/to/file
 
 If passed some arguments, Dobostorta will open windows as many as arguments.
 
+You can open dobostorta in incognito mode with `-i` or `--incognito` option.
+```
+$ dobostorta -i
+$ dobostorta -i http://google.com
+$ dobostorta -i something
+$ dobostorta -i /some/file
+```
+
 ## The Bar
 Bar is like a address bar or search bar. Perhaps, bar behave as command line in the future.
 

@@ -468,24 +468,30 @@ QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
 
 
 int main(int argc, char **argv) {
-    qInfo("Dobostorta " GIT_VERSION);
-
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
-
+    app.setApplicationName("Dobostorta");
+    app.setApplicationVersion(GIT_VERSION);
+    app.setAttribute(Qt::AA_EnableHighDpiScaling);
     QWebEngineSettings::defaultSettings()->setAttribute(
             QWebEngineSettings::FullScreenSupportEnabled, true);
 
+    QCommandLineParser parser;
+    parser.addPositionalArgument("[URL|PATH...]", "URL or file path.");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addOption(QCommandLineOption(QStringList() << "i" << "incognito", "set incognito mode"));
+    parser.process(app.arguments());
+
     TortaDatabase db;
 
-    if (argc == 1)
-        (new DobosTorta(db))->load(HOMEPAGE);
+    if (parser.positionalArguments().empty())
+        (new DobosTorta(db, parser.isSet("incognito")))->load(HOMEPAGE);
 
-    for (auto arg: app.arguments().mid(1)) {
+    for (auto arg: parser.positionalArguments()) {
         if (arg.startsWith("/") || arg.startsWith("~/") || arg.startsWith("./"))
-            (new DobosTorta(db))->load("file://" + expandFilePath(arg));
+            (new DobosTorta(db, parser.isSet("incognito")))->load("file://" + expandFilePath(arg));
         else
-            (new DobosTorta(db))->load(arg);
+            (new DobosTorta(db, parser.isSet("incognito")))->load(arg);
     }
 
     return app.exec();
