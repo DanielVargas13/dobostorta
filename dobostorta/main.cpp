@@ -30,10 +30,6 @@
 #define SHORTCUT_NEW_WINDOW     {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
 #define SHORTCUT_NEW_INCOGNITO  {SHORTCUT_META + Qt::SHIFT + Qt::Key_P}
 
-#define SCROLL_STEP_X  20
-#define SCROLL_STEP_Y  20
-#define ZOOM_STEP      0.1
-
 
 enum QueryType {
     URLWithScheme,
@@ -322,14 +318,12 @@ class DobosTorta : public QMainWindow {
         auto js = [&](const QString &s){ return [this, s]{ view.page()->runJavaScript(s); }; };
         auto sc = [&](int x, int y){ return js(QString("window.scrollBy(%1, %2)").arg(x).arg(y)); };
 
-        shortcuts.append({SHORTCUT_DOWN,  sc(0, SCROLL_STEP_Y)});
-        shortcuts.append({SHORTCUT_UP,    sc(0, -SCROLL_STEP_Y)});
-        shortcuts.append({SHORTCUT_RIGHT, sc(SCROLL_STEP_X, 0)});
-        shortcuts.append({SHORTCUT_LEFT,  sc(-SCROLL_STEP_X, 0)});
-
+        shortcuts.append({SHORTCUT_DOWN,  sc(0, 20)});
+        shortcuts.append({SHORTCUT_UP,    sc(0, -20)});
+        shortcuts.append({SHORTCUT_RIGHT, sc(20, 0)});
+        shortcuts.append({SHORTCUT_LEFT,  sc(-20, 0)});
         shortcuts.append({{Qt::Key_PageDown}, js("window.scrollBy(0, window.innerHeight / 2)")});
         shortcuts.append({{Qt::Key_PageUp},   js("window.scrollBy(0, -window.innerHeight / 2)")});
-
         shortcuts.append({SHORTCUT_TOP,    js("window.scrollTo(0, 0);")});
         shortcuts.append({{Qt::Key_Home},  js("window.scrollTo(0, 0);")});
         shortcuts.append({SHORTCUT_BOTTOM, js("window.scrollTo(0, document.body.scrollHeight);")});
@@ -340,9 +334,9 @@ class DobosTorta : public QMainWindow {
         shortcuts.append({SHORTCUT_PREV, f(QWebEnginePage::FindBackward)});
 
         auto zoom = [&](float x){ return [this, x]{ view.setZoomFactor(view.zoomFactor() + x); }; };
-        shortcuts.append({SHORTCUT_ZOOMIN,     zoom(+ZOOM_STEP)});
-        shortcuts.append({SHORTCUT_ZOOMIN_ALT, zoom(+ZOOM_STEP)});
-        shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-ZOOM_STEP)});
+        shortcuts.append({SHORTCUT_ZOOMIN,     zoom(+0.1)});
+        shortcuts.append({SHORTCUT_ZOOMIN_ALT, zoom(+0.1)});
+        shortcuts.append({SHORTCUT_ZOOMOUT,    zoom(-0.1)});
         shortcuts.append({SHORTCUT_ZOOMRESET,  [this]{ view.setZoomFactor(1.0); }});
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
