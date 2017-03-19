@@ -102,17 +102,15 @@ public:
 
     QStringList searchHistory(QString query) {
         search.bindValue(":query", "%" + query.replace("%", "\\%") + "%");
-        search.exec();
         QStringList r;
-        while (search.next())
+        for (search.exec(); search.next(); )
             r << search.value("uri").toString();
         return r;
     }
 
     QString firstForwardMatch(QString query) {
         forward.bindValue(":query", query.replace("%", "\\%") + "%");
-        forward.exec();
-        if (!forward.next())
+        if (!forward.exec() || !forward.next())
             return "";
         else if (forward.value("scheme").toString() == "search")
             return forward.value("addr").toString();
@@ -154,8 +152,7 @@ class TortaBar : public QLineEdit {
                 event(e);
             return keyEv->key() != Qt::Key_Up && keyEv->key() != Qt::Key_Down;
         } else if (e->type() == QEvent::InputMethod || e->type() == QEvent::InputMethodQuery) {
-            event(e);
-            return true;
+            return event(e);
         }
         return false;
     }
