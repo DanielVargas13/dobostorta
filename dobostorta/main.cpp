@@ -86,7 +86,7 @@ public:
 
         forward.prepare("SELECT scheme, address AS addr, scheme||':'||address AS uri FROM history  \
                         WHERE (scheme = 'search' AND address LIKE :query)                          \
-                           OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :query)              \
+                           OR (scheme!='search' AND scheme!='file' AND SUBSTR(addr,3) LIKE :query) \
                         GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC  LIMIT 1");
     }
 
