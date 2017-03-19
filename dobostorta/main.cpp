@@ -8,27 +8,27 @@
                     "Chrome/55.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
 
 #define SHORTCUT_META           (Qt::CTRL)
-#define SHORTCUT_FORWARD        {SHORTCUT_META + Qt::Key_I}
-#define SHORTCUT_BACK           {SHORTCUT_META + Qt::Key_O}
-#define SHORTCUT_RELOAD         {SHORTCUT_META + Qt::Key_R}
-#define SHORTCUT_BAR            {SHORTCUT_META + Qt::Key_Colon}
-#define SHORTCUT_BAR_ALT        {SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon}
-#define SHORTCUT_FIND           {SHORTCUT_META + Qt::Key_Slash}
-#define SHORTCUT_ESCAPE         {SHORTCUT_META + Qt::Key_BracketLeft}
-#define SHORTCUT_DOWN           {SHORTCUT_META + Qt::Key_J}
-#define SHORTCUT_UP             {SHORTCUT_META + Qt::Key_K}
-#define SHORTCUT_LEFT           {SHORTCUT_META + Qt::Key_H}
-#define SHORTCUT_RIGHT          {SHORTCUT_META + Qt::Key_L}
-#define SHORTCUT_TOP            {SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G}
-#define SHORTCUT_BOTTOM         {SHORTCUT_META + Qt::SHIFT + Qt::Key_G}
-#define SHORTCUT_NEXT           {SHORTCUT_META + Qt::Key_N}
-#define SHORTCUT_PREV           {SHORTCUT_META + Qt::Key_P}
-#define SHORTCUT_ZOOMIN         {SHORTCUT_META + Qt::Key_Plus}
-#define SHORTCUT_ZOOMIN_ALT     {SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus}
-#define SHORTCUT_ZOOMOUT        {SHORTCUT_META + Qt::Key_Minus}
-#define SHORTCUT_ZOOMRESET      {SHORTCUT_META + Qt::Key_0}
-#define SHORTCUT_NEW_WINDOW     {SHORTCUT_META + Qt::SHIFT + Qt::Key_N}
-#define SHORTCUT_NEW_INCOGNITO  {SHORTCUT_META + Qt::SHIFT + Qt::Key_P}
+#define SHORTCUT_FORWARD        QKeySequence(SHORTCUT_META + Qt::Key_I)
+#define SHORTCUT_BACK           QKeySequence(SHORTCUT_META + Qt::Key_O)
+#define SHORTCUT_RELOAD         QKeySequence(SHORTCUT_META + Qt::Key_R)
+#define SHORTCUT_BAR            QKeySequence(SHORTCUT_META + Qt::Key_Colon)
+#define SHORTCUT_BAR_ALT        QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_Colon)
+#define SHORTCUT_FIND           QKeySequence(SHORTCUT_META + Qt::Key_Slash)
+#define SHORTCUT_ESCAPE         QKeySequence(SHORTCUT_META + Qt::Key_BracketLeft)
+#define SHORTCUT_DOWN           QKeySequence(SHORTCUT_META + Qt::Key_J)
+#define SHORTCUT_UP             QKeySequence(SHORTCUT_META + Qt::Key_K)
+#define SHORTCUT_LEFT           QKeySequence(SHORTCUT_META + Qt::Key_H)
+#define SHORTCUT_RIGHT          QKeySequence(SHORTCUT_META + Qt::Key_L)
+#define SHORTCUT_TOP            QKeySequence(SHORTCUT_META + Qt::Key_G, SHORTCUT_META + Qt::Key_G)
+#define SHORTCUT_BOTTOM         QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_G)
+#define SHORTCUT_NEXT           QKeySequence(SHORTCUT_META + Qt::Key_N)
+#define SHORTCUT_PREV           QKeySequence(SHORTCUT_META + Qt::Key_P)
+#define SHORTCUT_ZOOMIN         QKeySequence(SHORTCUT_META + Qt::Key_Plus)
+#define SHORTCUT_ZOOMIN_ALT     QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_Plus)
+#define SHORTCUT_ZOOMOUT        QKeySequence(SHORTCUT_META + Qt::Key_Minus)
+#define SHORTCUT_ZOOMRESET      QKeySequence(SHORTCUT_META + Qt::Key_0)
+#define SHORTCUT_NEW_WINDOW     QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_N)
+#define SHORTCUT_NEW_INCOGNITO  QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_P)
 
 
 enum QueryType {
@@ -55,7 +55,7 @@ QueryType guessQueryType(const QString &str) {
 
 QString expandFilePath(const QString &path) {
     if (path.startsWith("~/"))
-        return QFileInfo(QDir::home(), path.right(path.length() - 2)).absoluteFilePath();
+        return QFileInfo(QDir::home(), path.mid(3)).absoluteFilePath();
     else
         return QFileInfo(QDir::current(), path).absoluteFilePath();
 }
@@ -75,21 +75,19 @@ public:
 
         db.exec("CREATE TABLE IF NOT EXISTS history                        \
                    (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,  \
-                    scheme TEXT NOT NULL, address TEXT NOT NULL)");
+                    scheme TEXT NOT NULL, address TEXT NOT NULL)           ");
         db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
         add.prepare("INSERT INTO history (scheme, address) VALUES (:scheme, :address)");
-        add.setForwardOnly(true);
 
         search.prepare("SELECT scheme||':'||address AS uri FROM history WHERE address LIKE :query  \
                        GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC LIMIT 500");
         search.setForwardOnly(true);
 
-        forward.prepare("SELECT scheme, address, scheme||':'||address AS uri FROM history          \
-                        WHERE (scheme = 'search' AND address LIKE :search_query)                   \
-                           OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :other_query)        \
+        forward.prepare("SELECT scheme, address AS addr, scheme||':'||address AS uri FROM history  \
+                        WHERE (scheme = 'search' AND address LIKE :query)                          \
+                           OR (scheme != 'search' AND SUBSTR(address, 3) LIKE :query)              \
                         GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC  LIMIT 1");
-        forward.setForwardOnly(true);
     }
 
     ~TortaDatabase() {
@@ -112,15 +110,14 @@ public:
     }
 
     QString firstForwardMatch(QString query) {
-        forward.bindValue(":search_query", query.replace("%", "\\%") + "%");
-        forward.bindValue(":other_query", forward.boundValue(":search_query").toString());
+        forward.bindValue(":query", query.replace("%", "\\%") + "%");
         forward.exec();
         if (!forward.next())
             return "";
         else if (forward.value("scheme").toString() == "search")
-            return forward.value(1).toString();
+            return forward.value("addr").toString();
         else
-            return forward.value(1).toString().right(forward.value(1).toString().length() - 2);
+            return forward.value("addr").toString().remove(0, 2);
     }
 };
 
@@ -133,12 +130,10 @@ class TortaBar : public QLineEdit {
 
 
     void keyPressEvent(QKeyEvent *e) override {
-        if (e->key() == Qt::Key_Escape
-        || QKeySequence(e->key() + e->modifiers()) == QKeySequence(SHORTCUT_ESCAPE)) {
+        if (e->key() == Qt::Key_Escape || QKeySequence(e->key()+e->modifiers()) == SHORTCUT_ESCAPE)
             close();
-        } else {
+        else
             QLineEdit::keyPressEvent(e);
-        }
     }
 
     bool eventFilter(QObject *obj, QEvent *e) override {
@@ -149,10 +144,10 @@ class TortaBar : public QLineEdit {
         } else if (obj == &suggest && e->type() == QEvent::KeyPress) {
             auto sel = suggest.selectionModel();
             const auto keyEv = static_cast<QKeyEvent *>(e);
-            if (QKeySequence(keyEv->key() + keyEv->modifiers()) == QKeySequence(SHORTCUT_NEXT))
+            if (QKeySequence(keyEv->key() + keyEv->modifiers()) == SHORTCUT_NEXT)
                 sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() + 1, 0),
                                      QItemSelectionModel::ClearAndSelect);
-            else if (QKeySequence(keyEv->key() + keyEv->modifiers()) == QKeySequence(SHORTCUT_PREV))
+            else if (QKeySequence(keyEv->key() + keyEv->modifiers()) == SHORTCUT_PREV)
                 sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() - 1, 0),
                                      QItemSelectionModel::ClearAndSelect);
             else
@@ -341,7 +336,7 @@ class DobosTorta : public QMainWindow {
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
         shortcuts.append({SHORTCUT_NEW_INCOGNITO,
-                [this]{ (new DobosTorta(db, true))->load(HOMEPAGE); }});
+                          [this]{ (new DobosTorta(db, true))->load(HOMEPAGE); }});
     }
 
     void setupBar() {
