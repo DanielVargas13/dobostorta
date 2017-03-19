@@ -162,18 +162,13 @@ public:
         horizontal->addLayout(left, 1);
 
         QFileInfo info(filePath);
-        auto path = new QHBoxLayout;
-        path->setAlignment(Qt::AlignLeft);
-        path->setSpacing(0);
-        left->addLayout(path);
-        auto fpath = new QLabel(info.dir().path() + "/", this);
-        path->addWidget(fpath);
-        auto fname = new QLabel(info.fileName(), this);
-        fname->setStyleSheet("font-weight: bold;");
-        path->addWidget(fname);
+        auto path = new QLabel(info.dir().path() + "/<b>" + info.fileName() + "</b>", this);
+        path->setWordWrap(true);
+        left->addWidget(path);
 
         auto url = new QLabel(QString("<a href=\"%1\">%1</a>").arg(reply->url().toString()), this);
         url->setOpenExternalLinks(true);
+        url->setWordWrap(true);
         left->addWidget(url);
 
         horizontal->addWidget(&actionButton);
@@ -251,6 +246,7 @@ public:
     TortaDL(TortaRequestHandler *handler) : handler(handler) {
         setWindowTitle("Dobostorta downloader");
 
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         layout.setAlignment(Qt::AlignTop);
         auto listArea = new QWidget(this);
         listArea->setLayout(&layout);
