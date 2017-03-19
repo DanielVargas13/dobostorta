@@ -127,12 +127,7 @@ class TortaBar : public QLineEdit {
     QListView suggest;
 
 
-    void keyPressEvent(QKeyEvent *e) override {
-        if (e->key() == Qt::Key_Escape || QKeySequence(e->key()+e->modifiers()) == SHORTCUT_ESCAPE)
-            close();
-        else
-            QLineEdit::keyPressEvent(e);
-    }
+    void keyPressEvent(QKeyEvent *e) override;
 
     bool eventFilter(QObject *obj, QEvent *e) override {
         if (obj == &suggest && e->type() == QEvent::MouseButtonPress) {
@@ -271,14 +266,8 @@ class DobosTorta : public QMainWindow {
 
 
     void keyPressEvent(QKeyEvent *e) override {
-        static QKeySequence key;
-        const QKeySequence seq(key[0], e->key() + e->modifiers());
-        key = QKeySequence(e->key() + e->modifiers());
-        for (const auto &sc: shortcuts) {
-            if (sc.first == key || sc.first == seq)
-                return sc.second();
-        }
-        QMainWindow::keyPressEvent(e);
+        if (!executeShortcuts(e))
+            QMainWindow::keyPressEvent(e);
     }
 
     void setupShortcuts() {
@@ -437,6 +426,19 @@ public:
         else if (type == InSiteSearch)
             inSiteSearch(query);
     }
+
+    bool executeShortcuts(const QKeyEvent *e) {
+        static QKeySequence key;
+        const QKeySequence seq(key[0], e->key() + e->modifiers());
+        key = QKeySequence(e->key() + e->modifiers());
+        for (const auto &sc: shortcuts) {
+            if (sc.first == key || sc.first == seq) {
+                sc.second();
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 
@@ -445,6 +447,14 @@ void TortaBar::close() {
     suggest.hide();
     setVisible(false);
     setText("");
+}
+
+
+void TortaBar::keyPressEvent(QKeyEvent *e) {
+    if (e->key() == Qt::Key_Escape || QKeySequence(e->key() + e->modifiers()) == SHORTCUT_ESCAPE)
+        close();
+    else if (!static_cast<DobosTorta *>(parent())->executeShortcuts(e))
+        QLineEdit::keyPressEvent(e);
 }
 
 
