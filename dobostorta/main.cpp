@@ -292,19 +292,17 @@ class DobosTorta : public QMainWindow {
         shortcuts.append({SHORTCUT_RELOAD,           [this]{ view.reload();  }});
 
         auto toggleBar = [this]{
-            if (!bar.hasFocus())
-                bar.open("", view.url().toDisplayString());
-            else if (guessQueryType(bar.text()) == InSiteSearch)
+            if (guessQueryType(bar.text()) == InSiteSearch)
                 bar.open("", bar.text().remove(0, 5));
+            else if (!bar.isVisible())
+                bar.open("", view.url().toDisplayString());
             else
                 bar.close();
         };
         shortcuts.append({SHORTCUT_BAR,     toggleBar});
         shortcuts.append({SHORTCUT_BAR_ALT, toggleBar});
         shortcuts.append({SHORTCUT_FIND,    [this]{
-            if (!bar.hasFocus())
-                bar.open("find:", "");
-            else if (guessQueryType(bar.text()) != InSiteSearch)
+            if (!bar.isVisible() || guessQueryType(bar.text()) != InSiteSearch)
                 bar.open("find:", bar.text());
             else
                 bar.close();
