@@ -153,7 +153,7 @@ class TortaBar : public QLineEdit {
     }
 
 public:
-    TortaBar(DobosTorta *parent, TortaDatabase &db, bool incognito)
+    TortaBar(DobosTorta * const parent, TortaDatabase &db, bool incognito)
             : QLineEdit(reinterpret_cast<QWidget *>(parent)) {
         suggest.setModel(new QStringListModel(&suggest));
         suggest.setWindowFlags(Qt::Popup);
@@ -243,7 +243,7 @@ class TortaView : public QWebEngineView {
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 public:
-    TortaView(DobosTorta *parent, bool incognito)
+    TortaView(DobosTorta * const parent, bool incognito)
             : QWebEngineView(reinterpret_cast<QWidget *>(parent)) {
         QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
                                                : new QWebEngineProfile("Default", this);
@@ -375,11 +375,8 @@ class DobosTorta : public QMainWindow {
         view.load(url);
     }
 
-    void inSiteSearch(QString query, QWebEnginePage::FindFlags flags={}) {
-        if (!query.isEmpty() && guessQueryType(query) == InSiteSearch)
-            view.findText(query.remove(0, 5), flags);
-        else
-            view.findText("");
+    void inSiteSearch(const QString &q, QWebEnginePage::FindFlags f={}) {
+        view.findText((!q.isEmpty() && guessQueryType(q) == InSiteSearch) ? q.mid(5) : "", f);
     }
 
     void updateFrameColor(bool error=false) {
@@ -413,14 +410,14 @@ public:
         show();
     }
 
-    void load(QString query) {
+    void load(const QString &query) {
         const QueryType type(guessQueryType(query));
         if (type == URLWithScheme)
             view.load(query);
         else if (type == URLWithoutScheme)
             view.load("http://" + query);
         else if (type == SearchWithScheme)
-            webSearch(query.remove(0, 7));
+            webSearch(query.mid(7));
         else if (type == SearchWithoutScheme)
             webSearch(query);
         else if (type == InSiteSearch)
@@ -459,8 +456,8 @@ void TortaBar::keyPressEvent(QKeyEvent *e) {
 
 
 QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
-    auto window = new DobosTorta(static_cast<DobosTorta *>(parentWidget())->db,
-                                 static_cast<DobosTorta *>(parentWidget())->incognito);
+    const DobosTorta * const torta = static_cast<const DobosTorta *>(parentWidget());
+    DobosTorta * const window = new DobosTorta(torta->db, torta->incognito);
     if (type == QWebEnginePage::WebBrowserBackgroundTab)
         parentWidget()->activateWindow();
     return &window->view;
