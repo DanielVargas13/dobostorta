@@ -297,10 +297,10 @@ class DobosTorta : public QMainWindow {
         auto js = [&](const QString &s){ return [this, s]{ view.page()->runJavaScript(s); }; };
         auto sc = [&](int x, int y){ return js(QString("window.scrollBy(%1, %2)").arg(x).arg(y)); };
 
-        shortcuts.append({SHORTCUT_DOWN,  sc(0, 20)});
-        shortcuts.append({SHORTCUT_UP,    sc(0, -20)});
-        shortcuts.append({SHORTCUT_RIGHT, sc(20, 0)});
-        shortcuts.append({SHORTCUT_LEFT,  sc(-20, 0)});
+        shortcuts.append({SHORTCUT_DOWN,  sc(0, 40)});
+        shortcuts.append({SHORTCUT_UP,    sc(0, -40)});
+        shortcuts.append({SHORTCUT_RIGHT, sc(40, 0)});
+        shortcuts.append({SHORTCUT_LEFT,  sc(-40, 0)});
         shortcuts.append({{Qt::Key_PageDown}, js("window.scrollBy(0, window.innerHeight / 2)")});
         shortcuts.append({{Qt::Key_PageUp},   js("window.scrollBy(0, -window.innerHeight / 2)")});
         shortcuts.append({SHORTCUT_TOP,    js("window.scrollTo(0, 0);")});
