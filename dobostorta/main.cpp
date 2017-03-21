@@ -247,6 +247,9 @@ public:
             : QWebEngineView(reinterpret_cast<QWidget *>(parent)) {
         QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
                                                : new QWebEngineProfile("Default", this);
+        connect(profile, &QWebEngineProfile::downloadRequested, [](QWebEngineDownloadItem *d){
+            QProcess::startDetached("torta-dl", {d->url().toString()});
+        });
         profile->setHttpUserAgent(USER_AGENT);
         profile->setHttpAcceptLanguage(QLocale().bcp47Name());
         setPage(new TortaPage(profile, this));
