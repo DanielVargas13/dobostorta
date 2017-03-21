@@ -64,11 +64,10 @@ QString expandFilePath(const QString &path) {
 class TortaDatabase {
     QSqlDatabase db;
     QSqlQuery add;
-    QSqlQuery search;
     QSqlQuery forward;
 
 public:
-    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), add(db), search(db), forward(db) {
+    TortaDatabase() : db(QSqlDatabase::addDatabase("QSQLITE")), add(db), forward(db) {
         db.setDatabaseName(QStandardPaths::writableLocation(QStandardPaths::DataLocation)
                            + "/history");
         db.open();
@@ -79,10 +78,6 @@ public:
         db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
         add.prepare("INSERT INTO history (scheme, address) VALUES (:scheme, :address)");
-
-        search.prepare("SELECT scheme||':'||address AS uri FROM history WHERE address LIKE :query  \
-                       GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC LIMIT 500");
-        search.setForwardOnly(true);
 
         forward.prepare("SELECT scheme, address AS addr, scheme||':'||address AS uri FROM history  \
                         WHERE (scheme = 'search' AND address LIKE :query)                          \
@@ -100,8 +95,13 @@ public:
         add.exec();
     }
 
-    QStringList searchHistory(QString query) {
-        search.bindValue(":query", "%" + query.replace("%", "\\%") + "%");
+    QStringList searchHistory(const QStringList &query) {
+        QSqlQuery search(QString("SELECT scheme||':'||address AS uri FROM history WHERE %1         \
+                                  GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC \
+                                  LIMIT 500").arg(QString(" AND address LIKE ?")
+                                                    .repeated(query.length()).remove(0, 5)), db);
+        for (QString q: query)
+            search.addBindValue("%" + q.replace("%", "\\%").replace("_", "\\_") + "%");
         QStringList r;
         for (search.exec(); search.next(); )
             r << search.value("uri").toString();
@@ -185,7 +185,7 @@ public:
             if (word.startsWith("~/") || word.startsWith("/"))
                 list << "file://" + expandFilePath(word);
 
-            list << "find: " + word << db.searchHistory(word);
+            list << "find: " + word << db.searchHistory(word.split(' ', QString::SkipEmptyParts));
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
             suggest.resize(width(),
