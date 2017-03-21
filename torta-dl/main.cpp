@@ -131,13 +131,12 @@ class TortaDownload : public QWidget {
                                 this);
             if (message.exec() == QMessageBox::Retry)
                 emit retry();
-        } else {
-            saveTo(filePath);
         }
         clearButton.show();
 
         intervalTimer.stop();
         if (!reply->error()) {
+            saveTo(filePath);
             progress.setFormat(QString("done [%1]").arg(bytesToKMG(progress.maximum())));
             setProgressBarColor(Qt::gray);
             actionButton.setText("open");
