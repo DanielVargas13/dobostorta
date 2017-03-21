@@ -176,10 +176,10 @@ public:
         connect(&actionButton, &QPushButton::clicked, [this, reply, filePath]{
             if (reply->isRunning())
                 reply->abort();
-			else if (reply->error())
+            else if (reply->error())
                 emit retry();
             else
-				QDesktopServices::openUrl(QUrl("file://" + filePath));
+                QDesktopServices::openUrl(QUrl("file://" + filePath));
         });
         connect(&clearButton,  &QPushButton::clicked, [this]{ emit clear(); });
 
