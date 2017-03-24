@@ -4,7 +4,7 @@
 
 
 #define HOMEPAGE    "http://google.com"
-#define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
+#define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " \
                     "Chrome/55.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
 
 #define SHORTCUT_META           (Qt::CTRL)
@@ -73,7 +73,7 @@ public:
         db.open();
 
         db.exec("CREATE TABLE IF NOT EXISTS history                        \
-                   (timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP UNIQUE,  \
+                   (timestamp TIMESTAMP UNIQUE DEFAULT CURRENT_TIMESTAMP,  \
                     scheme TEXT NOT NULL, address TEXT NOT NULL)           ");
         db.exec("CREATE INDEX IF NOT EXISTS history_index ON history(timestamp);");
 
@@ -89,13 +89,13 @@ public:
         db.exec("DELETE FROM history WHERE timestamp < DATETIME('now', '-1 year')");
     }
 
-    void appendHistory(const QString &scheme, const QString &address) {
+    void append(const QString &scheme, const QString &address) {
         add.bindValue(":scheme", scheme);
         add.bindValue(":address", address);
         add.exec();
     }
 
-    QStringList searchHistory(const QStringList &query) {
+    QStringList search(const QStringList &query) {
         QSqlQuery search(QString("SELECT scheme||':'||address AS uri FROM history WHERE %1         \
                                   GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC \
                                   LIMIT 500").arg(QString(" AND address LIKE ?")
@@ -109,7 +109,7 @@ public:
     }
 
     QString firstForwardMatch(QString query) {
-        forward.bindValue(":query", query.replace("%", "\\%") + "%");
+        forward.bindValue(":query", query.replace("%", "\\%").replace("_", "\\_") + "%");
         if (!forward.exec() || !forward.next())
             return "";
         else if (forward.value("scheme").toString() == "search")
@@ -136,13 +136,12 @@ class TortaBar : public QLineEdit {
             return true;
         } else if (obj == &suggest && e->type() == QEvent::KeyPress) {
             auto sel = suggest.selectionModel();
+            auto idx = [&](int x){ return suggest.model()->index(sel->currentIndex().row()+x, 0); };
             const auto keyEv = static_cast<QKeyEvent *>(e);
             if (QKeySequence(keyEv->key() + keyEv->modifiers()) == SHORTCUT_NEXT)
-                sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() + 1, 0),
-                                     QItemSelectionModel::ClearAndSelect);
+                sel->setCurrentIndex(idx(+1), QItemSelectionModel::ClearAndSelect);
             else if (QKeySequence(keyEv->key() + keyEv->modifiers()) == SHORTCUT_PREV)
-                sel->setCurrentIndex(suggest.model()->index(sel->currentIndex().row() - 1, 0),
-                                     QItemSelectionModel::ClearAndSelect);
+                sel->setCurrentIndex(idx(-1), QItemSelectionModel::ClearAndSelect);
             else
                 event(e);
             return keyEv->key() != Qt::Key_Up && keyEv->key() != Qt::Key_Down;
@@ -185,7 +184,7 @@ public:
             if (word.startsWith("~/") || word.startsWith("/"))
                 list << "file://" + expandFilePath(word);
 
-            list << "find: " + word << db.searchHistory(word.split(' ', QString::SkipEmptyParts));
+            list << "find: " + word << db.search(word.split(' ', QString::SkipEmptyParts));
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
             suggest.resize(width(),
@@ -343,7 +342,7 @@ class DobosTorta : public QMainWindow {
         connect(&view, &QWebEngineView::urlChanged, [this](const QUrl &url){
             updateFrameColor();
             if (!incognito)
-                db.appendHistory(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
+                db.append(url.scheme(), url.url().remove(0, url.scheme().length() + 1));
         });
         connect(page, &QWebEnginePage::linkHovered, [this](const QUrl &url){
             setWindowTitle((incognito ? "incognito: " : "")
@@ -368,7 +367,7 @@ class DobosTorta : public QMainWindow {
 
     void webSearch(const QString &queryString) {
         if (!incognito)
-            db.appendHistory("search", queryString);
+            db.append("search", queryString);
 
         QUrl url("https://google.com/search");
         QUrlQuery query;
