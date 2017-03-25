@@ -254,7 +254,11 @@ public:
                 [this](const QUrl &url){ startDownload(url); });
     }
 
-    void startDownload(const QUrl &url, const QString &fname) {
+    void startDownload(QUrl url, const QString &fname) {
+        if (url.scheme().isEmpty()) {
+            url = QUrl("http://" + url.toString());
+        }
+
         QNetworkRequest request(url);
         request.setRawHeader("User-Agent", USER_AGENT);
 
