@@ -243,8 +243,6 @@ protected:
   
 public:
     TortaDL(TortaRequestHandler *handler) : handler(handler) {
-        setWindowTitle("Dobostorta downloader");
-
         setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         layout.setAlignment(Qt::AlignTop);
         auto listArea = new QWidget(this);
@@ -287,18 +285,24 @@ public:
 
 
 int main(int argc, char **argv) {
-    if (argc == 1) {
-        qWarning("Dobostorta Downloader\n$ %s URL...", argv[0]);
-        return -1;
-    }
-
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
+    app.setApplicationName("Torta-DL");
+    app.setApplicationVersion(GIT_VERSION);
+
+    QCommandLineParser parser;
+    parser.addPositionalArgument("URL...", "URL that you want download.");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.process(app.arguments());
+
+    if (parser.positionalArguments().empty())
+        parser.showHelp(-1);
 
     auto handler = TortaRequestHandler::open();
     if (handler == nullptr) {
-        for (int i=1; i<argc; i++) {
-            if (!TortaRequestHandler::request({argv[i]}))
+        for (auto url: parser.positionalArguments()) {
+            if (!TortaRequestHandler::request({url}))
                 return -1;
         }
 
@@ -308,8 +312,8 @@ int main(int argc, char **argv) {
     TortaDL win(handler);
 
     bool started = false;
-    for (int i=1; i<argc; i++)
-        started = started || win.startDownload({argv[i]});
+    for (auto url: parser.positionalArguments())
+        started = started || win.startDownload({url});
 
     if (!started) {
         win.close();
