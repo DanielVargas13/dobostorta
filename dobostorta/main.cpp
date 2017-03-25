@@ -241,6 +241,17 @@ signals:
 class TortaView : public QWebEngineView {
     QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
+
+    void contextMenuEvent(QContextMenuEvent *e) override {
+        QMenu *menu = page()->createStandardContextMenu();
+        auto it = std::find(menu->actions().cbegin(), menu->actions().cend(),
+                            page()->action(QWebEnginePage::OpenLinkInThisWindow));
+        if (it != menu->actions().cend())
+            menu->insertAction(*(it + 1), page()->action(QWebEnginePage::OpenLinkInNewWindow));
+        connect(menu, &QMenu::aboutToHide, menu, &QObject::deleteLater);
+        menu->popup(e->globalPos());
+    }
+
 public:
     TortaView(DobosTorta * const parent, bool incognito)
             : QWebEngineView(reinterpret_cast<QWidget *>(parent)) {
