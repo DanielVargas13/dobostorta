@@ -9,8 +9,7 @@
 
 
 class TortaRequestHandler : public QLocalServer {
-    Q_OBJECT
-
+Q_OBJECT
 
     TortaRequestHandler() {
         listen(CONNECTION_NAME);
@@ -62,14 +61,20 @@ public:
         return true;
     }
 
+    static bool request(const QStringList &urls) {
+        bool success = true;
+        for (auto url: urls)
+            success = success && request(QUrl(url));
+        return success;
+    }
+
 signals:
     void receivedRequest(const QUrl &url);
 };
 
 
 class TortaDownload : public QWidget {
-    Q_OBJECT
-
+Q_OBJECT
 
     QNetworkReply * const reply;
     QVBoxLayout layout;
@@ -228,8 +233,7 @@ private slots:
 
 
 class TortaDL : public QScrollArea {
-    Q_OBJECT
-
+Q_OBJECT
 
     QVBoxLayout layout;
     QNetworkAccessManager manager;
@@ -304,14 +308,8 @@ int main(int argc, char **argv) {
         parser.showHelp(-1);
 
     auto handler = TortaRequestHandler::open();
-    if (handler == nullptr) {
-        for (auto url: parser.positionalArguments()) {
-            if (!TortaRequestHandler::request({url}))
-                return -1;
-        }
-
-        return 0;
-    }
+    if (handler == nullptr)
+        return TortaRequestHandler::request(parser.positionalArguments()) ? 0 : 2;
 
     TortaDL win(handler);
 
@@ -328,6 +326,5 @@ int main(int argc, char **argv) {
 
     return app.exec();
 }
-
 
 #include "main.moc"
