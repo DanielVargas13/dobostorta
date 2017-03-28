@@ -123,15 +123,6 @@ class TortaDownload : public QWidget {
     }
 
     void finished(const QString &filePath) {
-        if (reply->error() && reply->error() != QNetworkReply::OperationCanceledError) {
-            QMessageBox message(QMessageBox::Critical,
-                                reply->url().toString(),
-                                tr("Failed download\n%1").arg(reply->errorString()),
-                                QMessageBox::Retry | QMessageBox::Abort,
-                                this);
-            if (message.exec() == QMessageBox::Retry)
-                emit retry();
-        }
         clearButton.show();
 
         intervalTimer.stop();
@@ -145,6 +136,16 @@ class TortaDownload : public QWidget {
                                                      .arg(reply->errorString()));
             setProgressBarColor(Qt::darkRed);
             actionButton.setText("retry");
+        }
+
+        if (reply->error() && reply->error() != QNetworkReply::OperationCanceledError) {
+            QMessageBox message(QMessageBox::Critical,
+                                reply->url().toString(),
+                                tr("Failed download\n%1").arg(reply->errorString()),
+                                QMessageBox::Retry | QMessageBox::Abort,
+                                this);
+            if (message.exec() == QMessageBox::Retry)
+                emit retry();
         }
     }
 
@@ -266,7 +267,10 @@ public:
 
         layout.addWidget(dl);
 
-        connect(dl, &TortaDownload::retry, [this, url, fname]{ startDownload(url, fname); });
+        connect(dl, &TortaDownload::retry, [this, dl, url, fname]{
+            layout.removeWidget(dl);
+            startDownload(url, fname);
+        });
         connect(dl, &TortaDownload::clear, [this, dl]{
             layout.removeWidget(dl);
             delete dl;
