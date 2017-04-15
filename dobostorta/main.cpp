@@ -2,7 +2,6 @@
 #include <QtWebEngineWidgets>
 #include <QtWidgets>
 
-
 #define HOMEPAGE    "http://google.com"
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " \
                     "Chrome/55.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
@@ -28,7 +27,7 @@
 #define SHORTCUT_ZOOMOUT        QKeySequence(SHORTCUT_META + Qt::Key_Minus)
 #define SHORTCUT_ZOOMRESET      QKeySequence(SHORTCUT_META + Qt::Key_0)
 #define SHORTCUT_NEW_WINDOW     QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_N)
-#define SHORTCUT_NEW_INCOGNITO  QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_P)
+#define SHORTCUT_INCOGNITO      QKeySequence(SHORTCUT_META + Qt::SHIFT + Qt::Key_P)
 
 
 enum QueryType {
@@ -153,7 +152,7 @@ class TortaBar : public QLineEdit {
 
 public:
     TortaBar(DobosTorta * const parent, TortaDatabase &db, bool incognito)
-            : QLineEdit(reinterpret_cast<QWidget *>(parent)) {
+            : QLineEdit(reinterpret_cast<QWidget *>(parent)), suggest(this) {
         suggest.setModel(new QStringListModel(&suggest));
         suggest.setWindowFlags(Qt::Popup);
         suggest.setFocusPolicy(Qt::NoFocus);
@@ -168,11 +167,9 @@ public:
                 return suggest.hide();
 
             static QString before;
-            const QString match = db.firstForwardMatch(word);
-            if (!before.startsWith(word) && !match.isEmpty()) {
-                setText(match);
-                setSelection(word.length(), match.length());
-            }
+            QString match = db.firstForwardMatch(word);
+            if (!before.startsWith(word) && !match.isEmpty())
+                open(word, match.remove(0, word.length()));
             before = word;
 
             QStringList list;
@@ -184,7 +181,7 @@ public:
             if (word.startsWith("~/") || word.startsWith("/"))
                 list << "file://" + expandFilePath(word);
 
-            list << "find: " + word << db.search(word.split(' ', QString::SkipEmptyParts));
+            list << "find:" + word << db.search(word.split(' ', QString::SkipEmptyParts));
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
             suggest.resize(width(),
@@ -193,10 +190,8 @@ public:
             suggest.show();
         });
 
-        if (incognito) {
+        if (incognito)
             setStyleSheet("background-color: dimgray; color: white;");
-            suggest.setStyleSheet("background-color: dimgray; color: white;");
-        }
 
         setVisible(false);
     }
@@ -321,12 +316,11 @@ class DobosTorta : public QMainWindow {
         shortcuts.append({SHORTCUT_ZOOMRESET,  [this]{ view.setZoomFactor(1.0); }});
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
-        shortcuts.append({SHORTCUT_NEW_INCOGNITO,
-                          [this]{ (new DobosTorta(db, true))->load(HOMEPAGE); }});
+        shortcuts.append({SHORTCUT_INCOGNITO, [this]{(new DobosTorta(db, true))->load(HOMEPAGE);}});
     }
 
     void setupBar() {
-        connect(&bar, &QLineEdit::textChanged,   [this]{ inSiteSearch(bar.text()); });
+        connect(&bar, &QLineEdit::textChanged, [this]{ inSiteSearch(bar.text()); });
         connect(&bar, &QLineEdit::returnPressed, [this]{
             load(bar.text());
             if (guessQueryType(bar.text()) != InSiteSearch)
