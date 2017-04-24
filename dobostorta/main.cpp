@@ -382,20 +382,12 @@ class DobosTorta : public QMainWindow {
 
     void updateFrameColor(bool error=false) {
         if (view.url().scheme() != "https")
-            setStyleSheet(incognito ? "QMainWindow { background-color: blue; }"
-                                    : "QMainWindow { background-color: dimgray; }");
-        else if (!error)
-            setStyleSheet(incognito ? "QMainWindow { background:                                   \
-                                                      qlineargradient(x1:0, y1:0, x2:1, y2:1,      \
-                                                                      stop:0 lime, stop:0.3 blue,  \
-                                                                      stop:0.7 blue, stop:1 lime) }"
-                                    :  "QMainWindow{ background-color: lime; }");
+            setStyleSheet(!incognito ? "QMainWindow { background-color: dimgray; }"
+                                     : "QMainWindow { background-color: blue; }");
         else
-            setStyleSheet(incognito ? "QMainWindow { background:                                  \
-                                                      qlineargradient(x1:0, y1:0, x2:1, y2:1,     \
-                                                                      stop:0 red, stop:0.3 blue,  \
-                                                                      stop:0.7 blue, stop:1 red) }"
-                                    :  "QMainWindow{ background-color: red; }");
+            setStyleSheet(QString(!incognito ? "QMainWindow{ background-color: %1 }"
+                : "QMainWindow {background: qlineargradient(x1:0, y1:0, x2:1, y2:1,  \
+                   stop:0 %1,stop:0.3 blue,stop:0.7 blue,stop:1 %1)}").arg(error ? "red" : "lime"));
     }
 
 public:
