@@ -92,6 +92,7 @@ public:
         add.bindValue(":scheme", scheme);
         add.bindValue(":address", address);
         add.exec();
+        add.finish();
     }
 
     QStringList search(const QStringList &query) {
@@ -104,17 +105,21 @@ public:
         QStringList r;
         for (search.exec(); search.next(); )
             r << search.value("uri").toString();
+        search.finish();
         return r;
     }
 
     QString firstForwardMatch(QString query) {
         forward.bindValue(":query", query.replace("%", "\\%").replace("_", "\\_") + "%");
-        if (!forward.exec() || !forward.next())
-            return "";
-        else if (forward.value("scheme").toString() == "search")
-            return forward.value("addr").toString();
-        else
-            return forward.value("addr").toString().remove(0, 2);
+        QString result;
+        if (forward.exec() && forward.next()) {
+            if (forward.value("scheme").toString() == "search")
+                result = forward.value("addr").toString();
+            else
+                result = forward.value("addr").toString().remove(0, 2);
+        }
+        forward.finish();
+        return result;
     }
 };
 
