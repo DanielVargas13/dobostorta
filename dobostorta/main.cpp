@@ -81,6 +81,8 @@ public:
         forward.prepare("SELECT scheme, address AS addr, scheme||':'||address AS uri FROM history  \
                         WHERE (scheme = 'search' AND address LIKE :query)                          \
                            OR (scheme!='search' AND scheme!='file' AND SUBSTR(addr,3) LIKE :query) \
+                           OR ((scheme='http' OR scheme='https') AND SUBSTR(addr,1,6)='//www.'     \
+                               AND SUBSTR(addr,7) LIKE :query)                                     \
                         GROUP BY uri ORDER BY COUNT(timestamp) DESC, MAX(timestamp) DESC  LIMIT 1");
     }
 
@@ -113,13 +115,21 @@ public:
         forward.bindValue(":query", query.replace("%", "\\%").replace("_", "\\_") + "%");
         QString result;
         if (forward.exec() && forward.next()) {
-            if (forward.value("scheme").toString() == "search")
-                result = forward.value("addr").toString();
-            else
-                result = forward.value("addr").toString().remove(0, 2);
+            result = forward.value("addr").toString();
+            if (forward.value("scheme").toString() != "search")
+                result.remove(0, result.indexOf(query, 2));
         }
         forward.finish();
         return result;
+    }
+
+    QString expandAbridgedAddress(const QString &addr) {
+        QSqlQuery expand("SELECT CASE WHEN address = '//'||:q THEN scheme||':'||address AS x       \
+                                      WHEN address = '//www.'||:q THEN scheme||'://www.'||:q AS x  \
+                                 ELSE NULL END                                                     \
+                           WHERE x IS NOT NULL ORDER BY timestamp DESC LIMIT 1", db);
+        expand.bindValue(":q", addr);
+        return expand.exec() && expand.next() ? expand.value("x").toString() : "http://" + addr;
     }
 };
 
@@ -408,7 +418,7 @@ public:
         if (type == URLWithScheme)
             view.load(query);
         else if (type == URLWithoutScheme)
-            view.load("http://" + query);
+            view.load(db.expandAbridgedAddress(query));
         else if (type == SearchWithScheme)
             webSearch(query.mid(7));
         else if (type == SearchWithoutScheme)
