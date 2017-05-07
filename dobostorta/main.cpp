@@ -134,14 +134,17 @@ public:
 };
 
 
-class DobosTorta;
-
-
-class TortaBar : public QLineEdit {
+template <class Torta> class TortaBar : public QLineEdit {
     QListView suggest;
+    Torta * const parent;
 
 
-    void keyPressEvent(QKeyEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override {
+        if (e->key() == Qt::Key_Escape || QKeySequence(e->key()+e->modifiers()) == SHORTCUT_ESCAPE)
+            close();
+        else if (!parent->executeShortcuts(e))
+            QLineEdit::keyPressEvent(e);
+    }
 
     bool eventFilter(QObject *obj, QEvent *e) override {
         if (obj == &suggest && e->type() == QEvent::MouseButtonPress) {
@@ -166,8 +169,7 @@ class TortaBar : public QLineEdit {
     }
 
 public:
-    TortaBar(DobosTorta * const parent, TortaDatabase &db, bool incognito)
-            : QLineEdit(reinterpret_cast<QWidget *>(parent)), suggest(this) {
+    TortaBar(Torta * const torta) : QLineEdit(torta), suggest(this), parent(torta) {
         suggest.setModel(new QStringListModel(&suggest));
         suggest.setWindowFlags(Qt::Popup);
         suggest.setFocusPolicy(Qt::NoFocus);
@@ -177,12 +179,12 @@ public:
         connect(this, &QLineEdit::returnPressed, [this]{ suggest.hide(); });
         connect(suggest.selectionModel(), &QItemSelectionModel::currentChanged,
                 [&](const QModelIndex &c, const QModelIndex &_){ setText(c.data().toString()); });
-        connect(this, &QLineEdit::textEdited, [this, &db, parent](const QString &word){
+        connect(this, &QLineEdit::textEdited, [this, torta](const QString &word){
             if (word.isEmpty())
                 return suggest.hide();
 
             static QString before;
-            QString match = db.firstForwardMatch(word);
+            QString match = torta->db.firstForwardMatch(word);
             if (!before.startsWith(word) && !match.isEmpty())
                 open(word, match.remove(0, word.length()));
             before = word;
@@ -196,7 +198,7 @@ public:
             if (word.startsWith("~/") || word.startsWith("/"))
                 list << "file://" + expandFilePath(word);
 
-            list << "find:" + word << db.search(word.split(' ', QString::SkipEmptyParts));
+            list << "find:" + word << torta->db.search(word.split(' ', QString::SkipEmptyParts));
             static_cast<QStringListModel *>(suggest.model())->setStringList(list);
             suggest.move(mapToGlobal(QPoint(0, height())));
             suggest.resize(width(),
@@ -205,7 +207,7 @@ public:
             suggest.show();
         });
 
-        if (incognito)
+        if (torta->incognito)
             setStyleSheet("background-color: dimgray; color: white;");
 
         setVisible(false);
@@ -219,7 +221,12 @@ public:
         setSelection(prefix.length(), content.length());
     }
 
-    void close();
+    void close() {
+        parent->view.setFocus(Qt::ShortcutFocusReason);
+        suggest.hide();
+        setVisible(false);
+        setText("");
+    }
 };
 
 
@@ -248,14 +255,21 @@ signals:
 };
 
 
-class TortaView : public QWebEngineView {
-    QWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
+template <class Torta> class TortaView : public QWebEngineView {
+    Torta * const parent;
+
+
+    QWebEngineView * createWindow(QWebEnginePage::WebWindowType type) override {
+        Torta * const window = new Torta(parent->db, parent->incognito);
+        if (type == QWebEnginePage::WebBrowserBackgroundTab)
+            parentWidget()->activateWindow();
+        return &window->view;
+    }
 
 public:
-    TortaView(DobosTorta * const parent, bool incognito)
-            : QWebEngineView(reinterpret_cast<QWidget *>(parent)) {
-        QWebEngineProfile *profile = incognito ? new QWebEngineProfile(this)
-                                               : new QWebEngineProfile("Default", this);
+    TortaView(Torta * const torta) : QWebEngineView(torta), parent(torta) {
+        QWebEngineProfile *profile = torta->incognito ? new QWebEngineProfile(this)
+                                                      : new QWebEngineProfile("Default", this);
         connect(profile, &QWebEngineProfile::downloadRequested, [](QWebEngineDownloadItem *d){
             QProcess::startDetached("torta-dl", {d->url().toString()});
         });
@@ -267,11 +281,11 @@ public:
 
 
 class DobosTorta : public QMainWindow {
-    friend class TortaBar;
-    friend class TortaView;
+    friend class TortaBar<DobosTorta>;
+    friend class TortaView<DobosTorta>;
 
-    TortaBar bar;
-    TortaView view;
+    TortaBar<DobosTorta> bar;
+    TortaView<DobosTorta> view;
     TortaDatabase &db;
     QVector<QPair<const QKeySequence, const std::function<void(void)>>> shortcuts;
     const bool incognito;
@@ -402,7 +416,7 @@ class DobosTorta : public QMainWindow {
 
 public:
     DobosTorta(TortaDatabase &db, bool incognito=false)
-            : bar(this, db, incognito), view(this, incognito), db(db), incognito(incognito) {
+            : bar(this), view(this), db(db), incognito(incognito) {
         setupBar();
         setupView();
         setupShortcuts();
@@ -440,31 +454,6 @@ public:
         return false;
     }
 };
-
-
-void TortaBar::close() {
-    static_cast<DobosTorta *>(parent())->view.setFocus(Qt::ShortcutFocusReason);
-    suggest.hide();
-    setVisible(false);
-    setText("");
-}
-
-
-void TortaBar::keyPressEvent(QKeyEvent *e) {
-    if (e->key() == Qt::Key_Escape || QKeySequence(e->key() + e->modifiers()) == SHORTCUT_ESCAPE)
-        close();
-    else if (!static_cast<DobosTorta *>(parent())->executeShortcuts(e))
-        QLineEdit::keyPressEvent(e);
-}
-
-
-QWebEngineView *TortaView::createWindow(QWebEnginePage::WebWindowType type) {
-    const DobosTorta * const torta = static_cast<const DobosTorta *>(parentWidget());
-    DobosTorta * const window = new DobosTorta(torta->db, torta->incognito);
-    if (type == QWebEnginePage::WebBrowserBackgroundTab)
-        parentWidget()->activateWindow();
-    return &window->view;
-}
 
 
 int main(int argc, char **argv) {
