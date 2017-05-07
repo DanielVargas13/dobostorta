@@ -284,11 +284,11 @@ class DobosTorta : public QMainWindow {
     friend class TortaBar<DobosTorta>;
     friend class TortaView<DobosTorta>;
 
+    const bool incognito;
     TortaBar<DobosTorta> bar;
     TortaView<DobosTorta> view;
     TortaDatabase &db;
     QVector<QPair<const QKeySequence, const std::function<void(void)>>> shortcuts;
-    const bool incognito;
 
 
     void keyPressEvent(QKeyEvent *e) override {
@@ -416,7 +416,7 @@ class DobosTorta : public QMainWindow {
 
 public:
     DobosTorta(TortaDatabase &db, bool incognito=false)
-            : bar(this), view(this), db(db), incognito(incognito) {
+            : incognito(incognito), bar(this), view(this), db(db) {
         setupBar();
         setupView();
         setupShortcuts();
