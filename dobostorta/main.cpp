@@ -117,7 +117,7 @@ public:
         if (forward.exec() && forward.next()) {
             result = forward.value("addr").toString();
             if (forward.value("scheme").toString() != "search")
-                result.remove(0, result.indexOf(query, 2));
+                result.remove(0, result.toLower().indexOf(query.toLower()));
         }
         forward.finish();
         return result;
