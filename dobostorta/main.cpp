@@ -276,6 +276,7 @@ public:
         profile->setHttpUserAgent(USER_AGENT);
         profile->setHttpAcceptLanguage(QLocale().bcp47Name());
         setPage(new TortaPage(profile, this));
+        settings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
     }
 };
 
@@ -294,6 +295,10 @@ class DobosTorta : public QMainWindow {
     void keyPressEvent(QKeyEvent *e) override {
         if (!executeShortcuts(e))
             QMainWindow::keyPressEvent(e);
+    }
+
+    bool eventFilter(QObject *obj, QEvent *e) override {
+        return e->type() == QEvent::KeyPress && executeShortcuts(static_cast<QKeyEvent*>(e));
     }
 
     void setupShortcuts() {
@@ -346,6 +351,9 @@ class DobosTorta : public QMainWindow {
 
         shortcuts.append({SHORTCUT_NEW_WINDOW, [this]{ (new DobosTorta(db))->load(HOMEPAGE); }});
         shortcuts.append({SHORTCUT_INCOGNITO, [this]{(new DobosTorta(db, true))->load(HOMEPAGE);}});
+
+        shortcuts.append({SHORTCUT_ESCAPE,  js("document.webkitExitFullscreen()")});
+        shortcuts.append({{Qt::Key_Escape}, js("document.webkitExitFullscreen()")});
     }
 
     void setupBar() {
@@ -420,6 +428,7 @@ public:
         setupBar();
         setupView();
         setupShortcuts();
+        installEventFilter(this);
 
         setContentsMargins(2, 2, 2, 2);
         updateFrameColor();
@@ -461,8 +470,6 @@ int main(int argc, char **argv) {
     app.setApplicationName("Dobostorta");
     app.setApplicationVersion(GIT_VERSION);
     app.setAttribute(Qt::AA_EnableHighDpiScaling);
-    QWebEngineSettings::defaultSettings()->setAttribute(
-            QWebEngineSettings::FullScreenSupportEnabled, true);
 
     QCommandLineParser parser;
     parser.addPositionalArgument("[URL|PATH...]", "URL or file path.");
