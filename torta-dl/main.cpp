@@ -3,7 +3,7 @@
 
 
 #define USER_AGENT  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)" \
-                    "Chrome/60.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
+                    "Chrome/70.0.0.0 Safari/537.36 Dobostorta/" GIT_VERSION
 
 #define CONNECTION_NAME  "dobostorta-downloader.sock"
 
